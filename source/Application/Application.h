@@ -2,6 +2,13 @@
 
 #include <Windows.h>
 #include <cstdint>
+#include <d3d12.h>
+#include <dxgi1_4.h>
+#include <wrl/client.h>
+#include <cassert>
+
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
 
 class Application
 {
@@ -11,6 +18,12 @@ public:
 	void Run();
 
 private:
+
+	/// <summary>
+	/// フレームバッファ数
+	/// </summary>
+	static const uint32_t FrameCount = 2;
+
 	/// <summary>
 	/// インスタンスハンドル
 	/// </summary>
@@ -27,12 +40,65 @@ private:
 	/// ウィンドウの縦幅
 	/// </summary>
 	uint32_t m_Height;
-
+	/// <summary>
+	/// デバイス
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12Device> m_pDevice;
+	/// <summary>
+	/// コマンドキュー
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_pQueue;
+	/// <summary>
+	/// スワップチェーン
+	/// </summary>
+	Microsoft::WRL::ComPtr<IDXGISwapChain3> m_pSwapChain;
+	/// <summary>
+	/// カラーバッファ
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pColorBuffer[FrameCount];
+	/// <summary>
+	/// コマンドアロケータ
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pCmdAllocator[FrameCount];
+	/// <summary>
+	/// コマンドリスト
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pCmdList;
+	/// <summary>
+	/// ディスクリプタヒープ(RTV)
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pHeapRTV;
+	/// <summary>
+	/// フェンス
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12Fence> m_pFence;
+	/// <summary>
+	/// フェンスイベント
+	/// </summary>
+	HANDLE m_FenceEvent;
+	/// <summary>
+	/// フェンスカウンター
+	/// </summary>
+	uint64_t m_FenceCounter[FrameCount];
+	/// <summary>
+	/// フレーム番号
+	/// </summary>
+	uint32_t m_FrameIndex = 0;
+	/// <summary>
+	///  CPUディスクリプターハンドル(RTV)
+	/// </summary>
+	D3D12_CPU_DESCRIPTOR_HANDLE m_HandleRTV[FrameCount];
+	
 	bool Initialize();
 	void TermApplication();
 	bool InitWindow();
 	void TermWindow();
 	void MainLoop();
+	bool InitD3D();
+	void TermD3D();
+	void Render();
+	void WaitGpu();
+	void Present(uint32_t interval);
 
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
