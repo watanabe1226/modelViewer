@@ -69,6 +69,26 @@ private:
 	/// </summary>
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pHeapRTV;
 	/// <summary>
+	/// ディスクリプタヒープ(CBV)
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pHeapCBV;
+	/// <summary>
+	/// 頂点バッファ
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pVB;
+	/// <summary>
+	/// 定数バッファ
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_pCB[FrameCount];
+	/// <summary>
+	/// ルートシグネチャ
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
+	/// <summary>
+	/// パイプラインステート
+	/// </summary>
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPSO;
+	/// <summary>
 	/// フェンス
 	/// </summary>
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_pFence;
@@ -88,6 +108,26 @@ private:
 	///  CPUディスクリプターハンドル(RTV)
 	/// </summary>
 	D3D12_CPU_DESCRIPTOR_HANDLE m_HandleRTV[FrameCount];
+	/// <summary>
+	/// 頂点バッファビュー
+	/// </summary>
+	D3D12_VERTEX_BUFFER_VIEW m_VBV;
+	/// <summary>
+	/// ビューポート
+	/// </summary>
+	D3D12_VIEWPORT m_Viewport;
+	/// <summary>
+	/// シザー矩形
+	/// </summary>
+	D3D12_RECT m_Scissor;
+	/// <summary>
+	/// 定数バッファビュー
+	/// </summary>
+	ConstantBufferView<Transform> m_CBV[FrameCount];
+	/// <summary>
+	/// 回転角
+	/// </summary>
+	float m_RotateAngle;
 	
 	bool Initialize();
 	void TermApplication();
