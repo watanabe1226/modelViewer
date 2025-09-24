@@ -1,15 +1,6 @@
 #pragma once
-
-#include <Windows.h>
-#include <cstdint>
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <wrl/client.h>
-#include <cassert>
-
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-
+#include "pch.h"
+#include "../source/Math/Matrix4x4.h"
 class Application
 {
 public:
@@ -17,6 +8,21 @@ public:
 	~Application();
 	void Run();
 
+	struct alignas(256) Transform
+	{
+		Matrix4x4 World; // ワールド変換行列
+		Matrix4x4 View;  // ビュー変換行列
+		Matrix4x4 Proj;  // プロジェクション変換行列
+	};
+
+	template<typename T>
+	struct ConstantBufferView
+	{
+		D3D12_CONSTANT_BUFFER_VIEW_DESC Desc = {};
+		D3D12_CPU_DESCRIPTOR_HANDLE HandleCPU = {};
+		D3D12_GPU_DESCRIPTOR_HANDLE HandleGPU = {};
+		T* pBuffer = nullptr;
+	};
 private:
 
 	/// <summary>
@@ -43,55 +49,55 @@ private:
 	/// <summary>
 	/// デバイス
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12Device> m_pDevice;
+	ComPtr<ID3D12Device> m_pDevice;
 	/// <summary>
 	/// コマンドキュー
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_pQueue;
+	ComPtr<ID3D12CommandQueue> m_pQueue;
 	/// <summary>
 	/// スワップチェーン
 	/// </summary>
-	Microsoft::WRL::ComPtr<IDXGISwapChain3> m_pSwapChain;
+	ComPtr<IDXGISwapChain3> m_pSwapChain;
 	/// <summary>
 	/// カラーバッファ
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_pColorBuffer[FrameCount];
+	ComPtr<ID3D12Resource> m_pColorBuffer[FrameCount];
 	/// <summary>
 	/// コマンドアロケータ
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pCmdAllocator[FrameCount];
+	ComPtr<ID3D12CommandAllocator> m_pCmdAllocator[FrameCount];
 	/// <summary>
 	/// コマンドリスト
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pCmdList;
+	ComPtr<ID3D12GraphicsCommandList> m_pCmdList;
 	/// <summary>
 	/// ディスクリプタヒープ(RTV)
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pHeapRTV;
+	ComPtr<ID3D12DescriptorHeap> m_pHeapRTV;
 	/// <summary>
 	/// ディスクリプタヒープ(CBV)
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pHeapCBV;
+	ComPtr<ID3D12DescriptorHeap> m_pHeapCBV;
 	/// <summary>
 	/// 頂点バッファ
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_pVB;
+	ComPtr<ID3D12Resource> m_pVB;
 	/// <summary>
 	/// 定数バッファ
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_pCB[FrameCount];
+	ComPtr<ID3D12Resource> m_pCB[FrameCount];
 	/// <summary>
 	/// ルートシグネチャ
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pRootSignature;
+	ComPtr<ID3D12RootSignature> m_pRootSignature;
 	/// <summary>
 	/// パイプラインステート
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPSO;
+	ComPtr<ID3D12PipelineState> m_pPSO;
 	/// <summary>
 	/// フェンス
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D12Fence> m_pFence;
+	ComPtr<ID3D12Fence> m_pFence;
 	/// <summary>
 	/// フェンスイベント
 	/// </summary>
@@ -136,6 +142,7 @@ private:
 	void MainLoop();
 	bool InitD3D();
 	void TermD3D();
+	bool OnInit();
 	void Render();
 	void WaitGpu();
 	void Present(uint32_t interval);
