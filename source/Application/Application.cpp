@@ -452,9 +452,10 @@ bool Application::OnInit()
 		// 頂点データ
 		Vertex vertices[] =
 		{
-			Vector3D(-1.0f, -1.0f, 0.0f), Vector4D(0.0f, 0.0f, 1.0f, 1.0f),
-			Vector3D( 1.0f, -1.0f, 0.0f), Vector4D(0.0f, 1.0f, 0.0f, 1.0f),
-			Vector3D( 0.0f,  1.0f, 0.0f), Vector4D(1.0f, 0.0f, 0.0f, 1.0f),
+			Vector3D(-1.0f,  1.0f, 0.0f), Vector4D(1.0f, 0.0f, 0.0f, 1.0f),
+			Vector3D( 1.0f,  1.0f, 0.0f), Vector4D(0.0f, 1.0f, 0.0f, 1.0f),
+			Vector3D( 1.0f, -1.0f, 0.0f), Vector4D(0.0f, 0.0f, 1.0f, 1.0f),
+			Vector3D(-1.0f, -1.0f, 0.0f), Vector4D(1.0f, 0.0f, 1.0f, 1.0f),
 		};
 
 		// ヒーププロパティ
@@ -508,6 +509,65 @@ bool Application::OnInit()
 		m_VBV.StrideInBytes = static_cast<UINT>(sizeof(Vertex));
 	}
 
+	// インデックスバッファの生成
+	{
+		uint32_t indices[] =
+		{
+			0, 1, 2,
+			0, 2, 3,
+		};
+
+		// ヒーププロパティ
+		D3D12_HEAP_PROPERTIES prop = {};
+		prop.Type = D3D12_HEAP_TYPE_UPLOAD; // CPUから書き込み可能なヒープ
+		prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		prop.CreationNodeMask = 1;
+		prop.VisibleNodeMask = 1;
+
+		// リソースの設定
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Alignment = 0;
+		desc.Width = sizeof(indices); // 頂点データのサイズ
+		desc.Height = 1;
+		desc.DepthOrArraySize = 1;
+		desc.MipLevels = 1;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		// リソースを生成
+		auto hr = m_pDevice->CreateCommittedResource(
+			&prop,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(m_pIB.GetAddressOf())
+		);
+
+		// マッピング
+		void* ptr = nullptr;
+		hr = m_pIB->Map(0, nullptr, &ptr);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		// 頂点データをマッピング先に設定
+		memcpy(ptr, indices, sizeof(indices));
+
+		// マッピング解除
+		m_pIB->Unmap(0, nullptr);
+
+		// 頂点バッファビューの設定
+		m_IBV.BufferLocation = m_pIB->GetGPUVirtualAddress();
+		m_IBV.Format = DXGI_FORMAT_R32_UINT;
+		m_IBV.SizeInBytes = static_cast<UINT>(sizeof(indices));
+
+	}
 	// 定数バッファ用のディスクリプタヒープの生成
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -601,6 +661,72 @@ bool Application::OnInit()
 			m_CBV[i].pBuffer->Proj = Matrix4x4::setPerspectiveFovLH(fovY, aspect, 1.0f, 1000.0f);
 
 		}
+	}
+
+	// 深度ステンシルバッファの生成
+	{
+		D3D12_HEAP_PROPERTIES prop = {};
+		prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+		prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		prop.CreationNodeMask = 1;
+		prop.VisibleNodeMask = 1;
+
+		D3D12_RESOURCE_DESC resDesc = {};
+		resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		resDesc.Alignment = 0;
+		resDesc.Width = m_Width;
+		resDesc.Height = m_Height;
+		resDesc.DepthOrArraySize = 1;
+		resDesc.MipLevels = 1;
+		resDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		resDesc.SampleDesc.Count = 1;
+		resDesc.SampleDesc.Quality = 0;
+		resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+		D3D12_CLEAR_VALUE clearValue = {};
+		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		clearValue.DepthStencil.Depth = 1.0f;
+		clearValue.DepthStencil.Stencil = 0;
+
+		auto hr = m_pDevice->CreateCommittedResource(
+			&prop,
+			D3D12_HEAP_FLAG_NONE,
+			&resDesc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&clearValue,
+			IID_PPV_ARGS(m_pDepthBuffer.GetAddressOf())
+		);
+
+		// ディスクリプタヒープの設定
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+		heapDesc.NumDescriptors = 1;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		heapDesc.NodeMask = 0;
+
+		hr = m_pDevice->CreateDescriptorHeap(
+			&heapDesc,
+			IID_PPV_ARGS(m_pHeapDSV.GetAddressOf())
+		);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		auto handle = m_pHeapDSV->GetCPUDescriptorHandleForHeapStart();
+		auto incrementSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
+		viewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		viewDesc.Texture2D.MipSlice = 0;
+		viewDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+		m_pDevice->CreateDepthStencilView(m_pDepthBuffer.Get(), &viewDesc, handle);
+
+		m_HandleDSV = handle;
 	}
 
 	// ルートシグネチャ
@@ -723,6 +849,13 @@ bool Application::OnInit()
 			return false;
 		}
 
+		// 深度ステンシルステートの設定
+		D3D12_DEPTH_STENCIL_DESC descDSS = {};
+		descDSS.DepthEnable = TRUE;
+		descDSS.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		descDSS.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		descDSS.StencilEnable = FALSE;
+
 		// パイプラインステートの設定
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
 		desc.InputLayout = { elements, _countof(elements) };
@@ -731,13 +864,12 @@ bool Application::OnInit()
 		desc.PS = { psBlob->GetBufferPointer(), psBlob->GetBufferSize() };
 		desc.RasterizerState = descRS;
 		desc.BlendState = descBS;
-		desc.DepthStencilState.DepthEnable = FALSE;
-		desc.DepthStencilState.StencilEnable = FALSE;
+		desc.DepthStencilState = descDSS;
 		desc.SampleMask = UINT_MAX;
 		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		desc.NumRenderTargets = 1;
 		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		desc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+		desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 
@@ -786,13 +918,16 @@ void Application::Render()
 	m_pCmdList->ResourceBarrier(1, &barrior);
 
 	// レンダーターゲットの設定
-	m_pCmdList->OMSetRenderTargets(1, &m_HandleRTV[m_FrameIndex], FALSE, nullptr);
+	m_pCmdList->OMSetRenderTargets(1, &m_HandleRTV[m_FrameIndex], FALSE, &m_HandleDSV);
 
 	// クリアカラーの設定
 	float clearColor[] = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 	// RTVをクリア
 	m_pCmdList->ClearRenderTargetView(m_HandleRTV[m_FrameIndex], clearColor, 0, nullptr);
+
+	// DSVをクリア
+	m_pCmdList->ClearDepthStencilView(m_HandleDSV, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	// 描画処理
 	{
@@ -803,10 +938,11 @@ void Application::Render()
 
 		m_pCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pCmdList->IASetVertexBuffers(0, 1, &m_VBV);
+		m_pCmdList->IASetIndexBuffer(&m_IBV);
 		m_pCmdList->RSSetViewports(1, &m_Viewport);
 		m_pCmdList->RSSetScissorRects(1, &m_Scissor);
 
-		m_pCmdList->DrawInstanced(3, 1, 0, 0);
+		m_pCmdList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 	}
 
 	// リソースバリアの設定

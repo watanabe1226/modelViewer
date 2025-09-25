@@ -63,6 +63,10 @@ private:
 	/// </summary>
 	ComPtr<ID3D12Resource> m_pColorBuffer[FrameCount];
 	/// <summary>
+	/// カラーバッファ
+	/// </summary>
+	ComPtr<ID3D12Resource> m_pDepthBuffer;
+	/// <summary>
 	/// コマンドアロケータ
 	/// </summary>
 	ComPtr<ID3D12CommandAllocator> m_pCmdAllocator[FrameCount];
@@ -75,6 +79,10 @@ private:
 	/// </summary>
 	ComPtr<ID3D12DescriptorHeap> m_pHeapRTV;
 	/// <summary>
+	/// ディスクリプタヒープ(DSV)
+	/// </summary>
+	ComPtr<ID3D12DescriptorHeap> m_pHeapDSV;
+	/// <summary>
 	/// ディスクリプタヒープ(CBV)
 	/// </summary>
 	ComPtr<ID3D12DescriptorHeap> m_pHeapCBV;
@@ -82,6 +90,10 @@ private:
 	/// 頂点バッファ
 	/// </summary>
 	ComPtr<ID3D12Resource> m_pVB;
+	/// <summary>
+	/// インデックスバッファ
+	/// </summary>
+	ComPtr<ID3D12Resource> m_pIB;
 	/// <summary>
 	/// 定数バッファ
 	/// </summary>
@@ -115,9 +127,17 @@ private:
 	/// </summary>
 	D3D12_CPU_DESCRIPTOR_HANDLE m_HandleRTV[FrameCount];
 	/// <summary>
+	///  CPUディスクリプターハンドル(DSV)
+	/// </summary>
+	D3D12_CPU_DESCRIPTOR_HANDLE m_HandleDSV;
+	/// <summary>
 	/// 頂点バッファビュー
 	/// </summary>
 	D3D12_VERTEX_BUFFER_VIEW m_VBV;
+	/// <summary>
+	/// インデックスバッファビュー
+	/// </summary>
+	D3D12_INDEX_BUFFER_VIEW m_IBV;
 	/// <summary>
 	/// ビューポート
 	/// </summary>
