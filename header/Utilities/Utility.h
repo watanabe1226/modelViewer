@@ -36,7 +36,7 @@ namespace Utility
         WCHAR GetTextureFilePath[MAX_PATH];
         GetCurrentDirectory(MAX_PATH, GetTextureFilePath);
         std::wstring erasePath = GetTextureFilePath;
-        erasePath = erasePath.erase(erasePath.length() - 7); // /projectíœ
+        erasePath = erasePath.erase(erasePath.length());
 
         return erasePath;
     }

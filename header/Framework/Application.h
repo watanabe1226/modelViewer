@@ -1,6 +1,6 @@
 #pragma once
 #include "pch.h"
-#include "../source/Math/Matrix4x4.h"
+#include "Math/Matrix4x4.h"
 class Application
 {
 public:

@@ -1,8 +1,8 @@
-#include "Application.h"
-#include "../source/Math/Vector3D.h"
-#include "../source/Math/Vector4D.h"
-#include "../source/Math/MathUtility.h"
-#include "../source/Utilities/Utility.h"
+#include "Framework/Application.h"
+#include "Math/Vector3D.h"
+#include "Math/Vector4D.h"
+#include "Math/MathUtility.h"
+#include "Utilities/Utility.h"
 
 namespace
 {
