@@ -1,8 +1,10 @@
-#include "Framework/Application.h"
+#include "Framework/Renderer.h"
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
 #include "Math/MathUtility.h"
 #include "Utilities/Utility.h"
+#include "Graphics/DX12Device.h"
+#include "Graphics/DX12Utilities.h"
 
 namespace
 {
@@ -23,7 +25,7 @@ struct Vertex
 /// </summary>
 /// <param name="width"> ウィンドウの横幅 </param>
 /// <param name="height"> ウィンドウの縦幅 </param>
-Application::Application(uint32_t width, uint32_t height)
+Renderer::Renderer(uint32_t width, uint32_t height)
 	: m_HInstance(nullptr),
 	m_hWnd(nullptr),
 	m_Width(width),
@@ -35,14 +37,14 @@ Application::Application(uint32_t width, uint32_t height)
 /// <summary>
 /// デストラクタ
 /// </summary>
-Application::~Application()
+Renderer::~Renderer()
 {
 }
 
 /// <summary>
 /// 実行します．
 /// </summary>
-void Application::Run()
+void Renderer::Run()
 {
 	if (Initialize())
 	{
@@ -54,177 +56,12 @@ void Application::Run()
 }
 
 /// <summary>
-/// 初期化処理です．
-/// </summary>
-bool Application::Initialize()
-{
-	// ウィンドウの初期化
-	if (!InitWindow())
-	{
-		return false;
-	}
-
-	// Direct3Dの初期化
-	if (!InitD3D())
-	{
-		return false;
-	}
-
-	if (!OnInit())
-	{
-		return false;
-	}
-	return true;
-}
-
-/// <summary>
-/// アプリ終了処理を行います．
-/// </summary>
-void Application::TermApplication()
-{
-	// ウィンドウの終了処理
-	TermWindow();
-}
-
-/// <summary>
-/// ウィンドウの初期化処理を行います．
-/// </summary>
-bool Application::InitWindow()
-{
-	// インスタンスハンドルを取得
-	auto hInst = GetModuleHandle(nullptr);
-	if (hInst == nullptr)
-	{
-		return false;
-	}
-
-	// ウィンドウの設定
-	WNDCLASSEX wc = {};
-	wc.cbSize = sizeof(WNDCLASSEX); // WNDCLASSEX構造体のサイズを設定
-	wc.style = CS_HREDRAW | CS_VREDRAW; // ウィンドウのスタイルを設定
-	wc.lpfnWndProc = WindowProc; // ウィンドウプロシージャの関数ポインタを設定
-	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION); // アプリケーションのアイコンを設定
-	wc.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND); // 背景色を設定
-	wc.lpszMenuName = nullptr; // メニュー名を設定しない
-	wc.lpszClassName = ClassName; // ウィンドウクラス名を設定
-	wc.hIconSm = LoadIcon(nullptr, IDI_APPLICATION); // 小さいアイコンを設定
-
-	// ウィンドウクラスの登録
-	if (!RegisterClassEx(&wc))
-	{
-		return false;
-	}
-
-	// インスタンスハンドルの設定
-	m_HInstance = hInst;
-
-	// ウィンドウのサイズを設定
-	RECT rect = {};
-	rect.right = static_cast<LONG>(m_Width);
-	rect.bottom = static_cast<LONG>(m_Height);
-
-	// ウィンドウサイズを調整
-	auto style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
-	AdjustWindowRect(&rect, style, FALSE);
-
-	// ウィンドウを生成
-	m_hWnd = CreateWindowEx(
-		0,
-		ClassName,
-		TEXT("Model Viewer"),
-		style,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		rect.right - rect.left,
-		rect.bottom - rect.top,
-		nullptr,
-		nullptr,
-		m_HInstance,
-		nullptr
-	);
-
-	if (m_hWnd == nullptr)
-	{
-		return false;
-	}
-
-	// ウィンドウを表示
-	ShowWindow(m_hWnd, SW_SHOWNORMAL);
-
-	// ウィンドウを更新
-	UpdateWindow(m_hWnd);
-
-	// ウィンドウにフォーカスを設定
-	SetFocus(m_hWnd);
-
-	return true;
-}
-
-/// <summary>
-/// ウィンドウの終了処理を行います.
-/// </summary>
-void Application::TermWindow()
-{
-	// ウィンドウの登録を解除
-	if (m_HInstance != nullptr)
-	{
-		UnregisterClass(ClassName, m_HInstance);
-	}
-
-	m_HInstance = nullptr;
-	m_hWnd = nullptr;
-}
-
-/// <summary>
-/// メインループです.
-/// </summary>
-void Application::MainLoop()
-{
-	MSG msg = {};
-	while (WM_QUIT != msg.message)
-	{
-		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) == TRUE)
-		{
-			// メッセージを変換
-			TranslateMessage(&msg);
-			// メッセージをディスパッチ
-			DispatchMessage(&msg);
-		}
-		else
-		{
-			Render();
-		}
-	}
-}
-
-/// <summary>
 /// Direct3Dの初期化処理です．
 /// </summary>
-bool Application::InitD3D()
+bool Renderer::InitD3D()
 {
-#if defined(DEBUG) || defined(_DEBUG)
-	ComPtr<ID3D12Debug> debug;
-	auto hr = D3D12GetDebugInterface(IID_PPV_ARGS(debug.GetAddressOf()));
-	
-	// デバッグレイヤーを有効化
-	if (SUCCEEDED(hr))
-	{
-		debug->EnableDebugLayer();
-	}
-#endif
-
 	// デバイスの生成
-	{
-		auto hr = D3D12CreateDevice(
-			nullptr,
-			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(m_pDevice.GetAddressOf())
-		);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-	}
+	m_pDX12Device = std::make_unique<DX12Device>();
 
 	// コマンドキューの生成
 	{
@@ -236,7 +73,7 @@ bool Application::InitD3D()
 		// GPUが1つを前提にしているため0
 		desc.NodeMask = 0;
 
-		hr = m_pDevice->CreateCommandQueue(&desc, IID_PPV_ARGS(m_pQueue.GetAddressOf()));
+		auto hr = m_pDX12Device->GetDevice()->CreateCommandQueue(&desc, IID_PPV_ARGS(m_pQueue.GetAddressOf()));
 		if (FAILED(hr))
 		{
 			return false;
@@ -401,7 +238,7 @@ bool Application::InitD3D()
 /// <summary>
 /// Direct3Dの終了処理です．
 /// </summary>
-void Application::TermD3D()
+void Renderer::TermD3D()
 {
 	// GPU処理の完了を待機
 	WaitGpu();
@@ -445,7 +282,7 @@ void Application::TermD3D()
 /// <summary>
 /// 初期化時の処理です．
 /// </summary>
-bool Application::OnInit()
+bool Renderer::OnInit()
 {
 	// 頂点バッファの生成
 	{
@@ -453,8 +290,8 @@ bool Application::OnInit()
 		Vertex vertices[] =
 		{
 			Vector3D(-1.0f,  1.0f, 0.0f), Vector4D(1.0f, 0.0f, 0.0f, 1.0f),
-			Vector3D( 1.0f,  1.0f, 0.0f), Vector4D(0.0f, 1.0f, 0.0f, 1.0f),
-			Vector3D( 1.0f, -1.0f, 0.0f), Vector4D(0.0f, 0.0f, 1.0f, 1.0f),
+			Vector3D(1.0f,  1.0f, 0.0f), Vector4D(0.0f, 1.0f, 0.0f, 1.0f),
+			Vector3D(1.0f, -1.0f, 0.0f), Vector4D(0.0f, 0.0f, 1.0f, 1.0f),
 			Vector3D(-1.0f, -1.0f, 0.0f), Vector4D(1.0f, 0.0f, 1.0f, 1.0f),
 		};
 
@@ -640,7 +477,7 @@ bool Application::OnInit()
 
 			// 定数バッファビューの生成
 			m_pDevice->CreateConstantBufferView(&m_CBV[i].Desc, m_CBV[i].HandleCPU);
-		
+
 			// マッピング
 			hr = m_pCB[i]->Map(0, nullptr, reinterpret_cast<void**>(&m_CBV[i].pBuffer));
 			if (FAILED(hr))
@@ -899,7 +736,7 @@ bool Application::OnInit()
 /// <summary>
 /// 描画処理
 /// </summary>
-void Application::Render()
+void Renderer::Render()
 {
 	// コマンドの記録を開始
 	m_pCmdAllocator[m_FrameIndex]->Reset();
@@ -970,7 +807,7 @@ void Application::Render()
 /// <summary>
 /// GPU処理完了を待機します．
 /// </summary>
-void Application::WaitGpu()
+void Renderer::WaitGpu()
 {
 	assert(m_pQueue.Get() != nullptr);
 	assert(m_pFence.Get() != nullptr);
@@ -992,7 +829,7 @@ void Application::WaitGpu()
 /// 画面に表示し、次のフレームの準備を行います．
 /// </summary>
 /// <param name="interval"> ディスプレイの垂直同期とフレームの表示を同期する方法 0 : 同期なし 1 : 同期あり</param>
-void Application::Present(uint32_t interval)
+void Renderer::Present(uint32_t interval)
 {
 	// 画面に表示
 	m_pSwapChain->Present(interval, 0);
@@ -1013,30 +850,4 @@ void Application::Present(uint32_t interval)
 
 	// 次のフレームのフェンスカウンターを増やす
 	m_FenceCounter[m_FrameIndex] = currentValue + 1;
-}
-
-/// <summary>
-/// ウィンドウプロシージャです．
-/// </summary>
-/// <param name="hWnd"> ウィンドウハンドル </param>
-/// <param name="message"> メッセージ </param>
-/// <param name="wParam"> 追加のメッセージ情報 </param>
-/// <param name="lParam"> 追加のメッセージ情報 </param>
-/// <returns></returns>
-LRESULT Application::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	switch (msg)
-	{
-		case WM_DESTROY:
-		{
-			PostQuitMessage(0); // アプリケーションの終了を通知
-			break;
-		}
-		default:
-		{
-			break;
-		}
-	}
-
-	return DefWindowProc(hWnd, msg, wParam, lParam);
 }

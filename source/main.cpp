@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Framework/Application.h"
+#include "Framework/Engine.h"
 
 
 /// <summary>
@@ -11,8 +11,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 	// ウィンドウのサイズを指定
-	Application app(960, 540);
-	app.Run();
+	Engine engine(960, 540);
+	engine.Run();
 
 	return 0;
 }

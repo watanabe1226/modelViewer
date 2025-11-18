@@ -1,11 +1,14 @@
 #pragma once
 #include "pch.h"
 #include "Math/Matrix4x4.h"
-class Application
+
+class DX12Device;
+
+class Renderer
 {
 public:
-	Application(uint32_t width, uint32_t height);
-	~Application();
+	Renderer(uint32_t width, uint32_t height);
+	~Renderer();
 	void Run();
 
 	struct alignas(256) Transform
@@ -49,7 +52,7 @@ private:
 	/// <summary>
 	/// デバイス
 	/// </summary>
-	ComPtr<ID3D12Device> m_pDevice;
+	std::unique_ptr<DX12Device> m_pDX12Device = nullptr; 
 	/// <summary>
 	/// コマンドキュー
 	/// </summary>
@@ -154,18 +157,11 @@ private:
 	/// 回転角
 	/// </summary>
 	float m_RotateAngle;
-	
-	bool Initialize();
-	void TermApplication();
-	bool InitWindow();
-	void TermWindow();
-	void MainLoop();
+
 	bool InitD3D();
 	void TermD3D();
 	bool OnInit();
 	void Render();
 	void WaitGpu();
 	void Present(uint32_t interval);
-
-	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };

@@ -19,12 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\Framework\Application.cpp" />
+    <ClCompile Include="source\Framework\Engine.cpp" />
+    <ClCompile Include="source\Framework\Renderer.cpp" />
+    <ClCompile Include="source\Graphics\DX12Device.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="header\Framework\Application.h" />
+    <ClInclude Include="header\Framework\Engine.h" />
+    <ClInclude Include="header\Framework\Renderer.h" />
+    <ClInclude Include="header\Graphics\DX12Device.h" />
+    <ClInclude Include="header\Graphics\DX12Utilities.h" />
     <ClInclude Include="header\Math\MathUtility.h" />
     <ClInclude Include="header\Math\Matrix4x4.h" />
     <ClInclude Include="header\Math\Vector3D.h" />
