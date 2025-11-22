@@ -4,9 +4,6 @@
 
 #define STRINGFY(s)  #s
 #define TO_STRING(x) STRINGFY(x)
-#define FILE_PREFIX __FILE__ "(" TO_STRING(__LINE__) "): " 
-#define ThrowIfFailed(hr, msg) Utility::CheckResultCodeD3D12(hr, FILE_PREFIX msg)
-#define ThrowFailed(msg) Utility::CheckCodeD3D12(msg FILE_PREFIX)
 
 
 namespace Utility

@@ -21,15 +21,26 @@
   <ItemGroup>
     <ClCompile Include="source\Framework\Engine.cpp" />
     <ClCompile Include="source\Framework\Renderer.cpp" />
+    <ClCompile Include="source\Graphics\DX12Commands.cpp" />
+    <ClCompile Include="source\Graphics\DX12DescriptorHeap.cpp" />
     <ClCompile Include="source\Graphics\DX12Device.cpp" />
+    <ClCompile Include="source\Graphics\DX12PipelineState.cpp" />
+    <ClCompile Include="source\Graphics\DX12RootSignature.cpp" />
+    <ClCompile Include="source\Graphics\Window.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="header\Framework\Engine.h" />
     <ClInclude Include="header\Framework\Renderer.h" />
+    <ClInclude Include="header\Graphics\DX12Access.h" />
+    <ClInclude Include="header\Graphics\DX12Commands.h" />
+    <ClInclude Include="header\Graphics\DX12DescriptorHeap.h" />
     <ClInclude Include="header\Graphics\DX12Device.h" />
+    <ClInclude Include="header\Graphics\DX12PipelineState.h" />
+    <ClInclude Include="header\Graphics\DX12RootSignature.h" />
     <ClInclude Include="header\Graphics\DX12Utilities.h" />
+    <ClInclude Include="header\Graphics\Window.h" />
     <ClInclude Include="header\Math\MathUtility.h" />
     <ClInclude Include="header\Math\Matrix4x4.h" />
     <ClInclude Include="header\Math\Vector3D.h" />

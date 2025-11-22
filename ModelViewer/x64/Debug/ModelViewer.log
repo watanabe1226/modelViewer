@@ -1,6 +1,75 @@
-﻿  compilation object save succeeded; see C:\WorkSpace\ModelViewer\assets\shaders\SimplePS.cso
-  compilation object save succeeded; see C:\WorkSpace\ModelViewer\assets\shaders\SimpleTexPS.cso
-  compilation object save succeeded; see C:\WorkSpace\ModelViewer\assets\shaders\SimpleTexVS.cso
-  compilation object save succeeded; see C:\WorkSpace\ModelViewer\assets\shaders\SimpleVS.cso
-  Application.cpp
-  ModelViewer.vcxproj -> C:\WorkSpace\ModelViewer\x64\Debug\ModelViewer.exe
+﻿  Engine.cpp
+C:\WorkSpace\ModelViewer\header\Graphics\Window.h(5,7): warning C4099: 'ID3D12Device': タイプ名は最初 'struct' として使われていましたが 'class' として使われています。
+  (ソース ファイル 'source/Framework/Engine.cpp' をコンパイルしています)
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\d3d12.h(8498,5):
+      'ID3D12Device' の宣言を確認してください
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3301,27): error C2027: 認識できない型 'DX12PipelineState' が使われています。
+  (ソース ファイル 'source/Framework/Engine.cpp' をコンパイルしています)
+      C:\WorkSpace\ModelViewer\header\Framework\Renderer.h(8,7):
+      'DX12PipelineState' の宣言を確認してください
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3301,27):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\WorkSpace\ModelViewer\header\Framework\Renderer.h(48,37):
+          コンパイル対象の クラス テンプレート インスタンス化 'std::unique_ptr<DX12PipelineState,std::default_delete<DX12PipelineState>>' のリファレンスを確認してください
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3337,92):
+          コンパイル対象の クラス テンプレート インスタンス化 'std::default_delete<DX12PipelineState>' のリファレンスを確認してください
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3300,23):
+          クラス テンプレート メンバー関数 'void std::default_delete<DX12PipelineState>::operator ()(_Ty *) noexcept const' のコンパイル中
+          with
+          [
+              _Ty=DX12PipelineState
+          ]
+              C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3412,33):
+              'std::unique_ptr<DX12PipelineState,std::default_delete<DX12PipelineState>>::~unique_ptr' の 'std::default_delete<DX12PipelineState>::operator ()' への最初の参照を参照してください
+              C:\WorkSpace\ModelViewer\header\Framework\Renderer.h(65,1):
+              'Renderer::~Renderer' の 'std::unique_ptr<DX12PipelineState,std::default_delete<DX12PipelineState>>::~unique_ptr' への最初の参照を参照してください
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3301,25): error C2338: static_assert failed: 'can't delete an incomplete type'
+  (ソース ファイル 'source/Framework/Engine.cpp' をコンパイルしています)
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3302,9): warning C4150: 'DX12PipelineState' 型を削除するため delete 演算子が呼び出されましたが、定義がありません。
+  (ソース ファイル 'source/Framework/Engine.cpp' をコンパイルしています)
+      C:\WorkSpace\ModelViewer\header\Framework\Renderer.h(8,7):
+      'DX12PipelineState' の宣言を確認してください
+  
+  Renderer.cpp
+C:\WorkSpace\ModelViewer\header\Graphics\Window.h(5,7): warning C4099: 'ID3D12Device': タイプ名は最初 'struct' として使われていましたが 'class' として使われています。
+  (ソース ファイル 'source/Framework/Renderer.cpp' をコンパイルしています)
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\um\d3d12.h(8498,5):
+      'ID3D12Device' の宣言を確認してください
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3597,35): warning C4316: 'Renderer::Transform': ヒープで割り当てられたオブジェクトが 256 にアラインメントされていない可能性があります
+  (ソース ファイル 'source/Framework/Renderer.cpp' をコンパイルしています)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include\memory(3597,35):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\WorkSpace\ModelViewer\source\Framework\Renderer.cpp(230,27):
+          コンパイル対象の関数 テンプレート インスタンス化 'std::unique_ptr<Renderer::Transform,std::default_delete<Renderer::Transform>> std::make_unique<Renderer::Transform,,0>(void)' のリファレンスを確認してください
+  
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45): error C2440: '初期化中': 'U *' から 'ID3D12Device *' に変換できません。
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45): error C2440:         with
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45): error C2440:         [
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45): error C2440:             U=DX12Device
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45): error C2440:         ]
+  (ソース ファイル 'source/Framework/Renderer.cpp' をコンパイルしています)
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45):
+      指示された型は関連がありません。変換には reinterpret_cast、C スタイル キャストまたはかっこで囲まれた関数スタイル キャストが必要です。
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\WorkSpace\ModelViewer\source\Framework\Renderer.cpp(454,2):
+          コンパイル対象の関数 テンプレート インスタンス化 'Microsoft::WRL::ComPtr<ID3D12Device>::ComPtr<_Ty>(U *) throw()' のリファレンスを確認してください
+          with
+          [
+              _Ty=DX12Device,
+              U=DX12Device
+          ]
+              C:\WorkSpace\ModelViewer\source\Framework\Renderer.cpp(454,2):
+              'DX12Access::GetDevice' の 'Microsoft::WRL::ComPtr<ID3D12Device>::ComPtr' への最初の参照を参照してください
+  
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(252,45): error C2439: 'Microsoft::WRL::ComPtr<ID3D12Device>::ptr_': 指定されたメンバーは初期化できません。
+  (ソース ファイル 'source/Framework/Renderer.cpp' をコンパイルしています)
+      C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\winrt\wrl\client.h(216,20):
+      'Microsoft::WRL::ComPtr<ID3D12Device>::ptr_' の宣言を確認してください
+  
+  main.cpp
+  コードを生成中...
