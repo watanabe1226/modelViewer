@@ -48,4 +48,6 @@ namespace Utility
         }
         return path.substr(idx + 1, path.length() - idx - 1);
     }
+
+    const static std::wstring windowClassName = L"ModelViewerWindow";
 }

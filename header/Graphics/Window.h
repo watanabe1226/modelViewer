@@ -2,7 +2,6 @@
 #include "pch.h"
 
 class DX12DescriptorHeap;
-class ID3D12Device;
 
 class Window
 {
@@ -80,7 +79,7 @@ private:
 	/// <summary>
 	/// スクリーンバッファ
 	/// </summary>
-	ComPtr<ID3D12Resource> m_pScreenBuffers[FrameCount];
+	std::vector<ComPtr<ID3D12Resource>> m_pScreenBuffers = {nullptr};
 	uint32_t m_pScreenBufferRTVs[FrameCount];
 
 	/// <summary>

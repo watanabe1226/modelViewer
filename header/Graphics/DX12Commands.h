@@ -8,18 +8,18 @@ public:
 	DX12Commands(D3D12_COMMAND_LIST_TYPE type);
 	~DX12Commands();
 
-	void ExecuteCommandList(uint32_t frameIndex = 0);
-	void ResetCommand(uint32_t frameIndex = 0);
+	void ExecuteCommandList();
+	void ResetCommand(uint32_t frameIndex);
 
-	void WaitGpu(uint32_t timeout, uint32_t frameIndex);
+	void WaitGpu(uint32_t timeout);
 
 	ComPtr<ID3D12CommandQueue> GetCommandQueue() { return m_pCommandQueue; }
 	ComPtr<ID3D12GraphicsCommandList> GetGraphicsCommandList() { return m_pCommandList;}
 
 private:
 	void CreateCommandQueue(D3D12_COMMAND_LIST_TYPE type);
-	void CreateCommandList();
-	void CreateCommandAllocators();
+	void CreateCommandList(D3D12_COMMAND_LIST_TYPE type);
+	void CreateCommandAllocators(D3D12_COMMAND_LIST_TYPE type);
 	void CreateFence();
 
 	ID3D12Device* m_pDevice = nullptr;
@@ -27,7 +27,7 @@ private:
 	/// <summary>
 	/// コマンドアロケータ
 	/// </summary>
-	ComPtr<ID3D12CommandAllocator> m_pCommandAllocators[Window::FrameCount];
+	std::vector<ComPtr<ID3D12CommandAllocator>> m_pCommandAllocators = { nullptr }; //!< コマンドアロケータ
 	/// <summary>
 	/// コマンドリスト
 	/// </summary>
@@ -47,5 +47,5 @@ private:
 	/// <summary>
 	/// フェンスカウンター
 	/// </summary>
-	uint64_t m_FenceCounter[Window::FrameCount];
+	uint64_t m_FenceCounter = 0;
 };

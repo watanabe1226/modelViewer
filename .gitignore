@@ -35,8 +35,9 @@
 *.vs
 *user
 *filters
-project/x64
-project/ModelViewer
+*tlog
+*ilk
+*idb
 
 # shader file
 *.cso

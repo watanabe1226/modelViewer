@@ -22,6 +22,7 @@ Window::Window(const std::wstring& applicationName, uint32_t width, uint32_t hei
 	SetupWindow();
 	CreateSwapChain();
 
+	m_pScreenBuffers.resize(FrameCount);
 	UpdateRenderBuffers();
 	UpdateScreenBuffers();
 	UpdateDepthBuffer();
@@ -209,7 +210,6 @@ void Window::UpdateScreenBuffers()
 	ThrowFailed(m_pSwapChain->ResizeBuffers(FrameCount, m_Width, m_Height, desc.BufferDesc.Format, desc.Flags));
 
 	// RTVの作成
-
 	for (uint32_t i = 0; i < FrameCount; ++i)
 	{
 		// スワップチェーンから画面バッファを取得

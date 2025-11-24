@@ -19,6 +19,7 @@ using namespace EngineInternal;
 /// <param name="height"> ウィンドウの縦幅 </param>
 Engine::Engine(uint32_t width, uint32_t height)
 {
+	RegisterWindowClass();
 	m_pRenderer = std::make_unique<Renderer>(width, height);
 }
 
@@ -48,7 +49,7 @@ void Engine::RegisterWindowClass()
 	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION); // アプリケーションのアイコンを設定
 	wc.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND); // 背景色を設定
 	wc.lpszMenuName = nullptr; // メニュー名を設定しない
-	wc.lpszClassName = TEXT("ModelViewerWindow"); // ウィンドウクラス名を設定
+	wc.lpszClassName = Utility::windowClassName.c_str(); // ウィンドウクラス名を設定
 	wc.hIconSm = LoadIcon(nullptr, IDI_APPLICATION); // 小さいアイコンを設定
 
 	// ウィンドウクラスの登録

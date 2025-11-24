@@ -7,9 +7,14 @@ DX12Commands::DX12Commands(D3D12_COMMAND_LIST_TYPE type)
 	m_pDevice = DX12Access::GetDevice().Get();
 
 	CreateCommandQueue(type);
-	CreateCommandAllocators();
-	CreateCommandList();
+	CreateCommandAllocators(type);
+	CreateCommandList(type);
 	CreateFence();
+
+	ID3D12CommandList* ppCmdLists[] = { m_pCommandList.Get() };
+	m_pCommandQueue->ExecuteCommandLists(_countof(ppCmdLists), ppCmdLists);
+
+	WaitGpu(INFINITE); // 完了を待つ
 }
 
 DX12Commands::~DX12Commands()
@@ -23,16 +28,27 @@ DX12Commands::~DX12Commands()
 
 	// フェンスオブジェクトを破棄.
 	m_pFence.Reset();
+
+	m_pCommandList.Reset();
+
+	m_FenceCounter = 0;
+
+	for (size_t i = 0; i < m_pCommandAllocators.size(); ++i)
+	{
+		m_pCommandAllocators[i].Reset();
+	}
+
+	m_pCommandAllocators.clear();
+	m_pCommandAllocators.shrink_to_fit();
 }
 
-void DX12Commands::ExecuteCommandList(uint32_t frameIndex)
+void DX12Commands::ExecuteCommandList()
 {
 	ThrowFailed(m_pCommandList->Close());
 
 	// コマンドの実行
 	ID3D12CommandList* ppCmdLists[] = { m_pCommandList.Get() };
 	m_pCommandQueue->ExecuteCommandLists(_countof(ppCmdLists), ppCmdLists);
-	WaitGpu(INFINITY, frameIndex);
 }
 
 void DX12Commands::ResetCommand(uint32_t frameIndex)
@@ -41,30 +57,27 @@ void DX12Commands::ResetCommand(uint32_t frameIndex)
 	m_pCommandList->Reset(m_pCommandAllocators[frameIndex].Get(), nullptr);
 }
 
-void DX12Commands::WaitGpu(uint32_t timeout, uint32_t frameIndex)
+void DX12Commands::WaitGpu(uint32_t timeout)
 {
 	assert(m_pCommandQueue.Get() != nullptr);
 	assert(m_pFence.Get() != nullptr);
 	assert(m_FenceEvent != nullptr);
 
-	const auto fenceValue = m_FenceCounter[frameIndex]; //! 現在のフレームのフェンスカウンターを取得
+	const auto fenceValue = m_FenceCounter; //! 現在のフレームのフェンスカウンターを取得
 
 	// シグナル処理
 	auto hr = m_pCommandQueue->Signal(m_pFence.Get(), fenceValue);
 	ThrowFailed(hr);
 
 	// カウンターを増やす
-	++m_FenceCounter[frameIndex];
+	m_FenceCounter++;
 
 	// 次のフレーム描画処理がまだであれば待機
 	if (m_pFence->GetCompletedValue() < fenceValue)
 	{
 		// 完了時にイベントを設定
 		auto hr = m_pFence->SetEventOnCompletion(fenceValue, m_FenceEvent);
-		if (FAILED(hr))
-		{
-			return;
-		}
+		ThrowFailed(hr);
 
 		// 待機処理
 		if (WAIT_OBJECT_0 != WaitForSingleObjectEx(m_FenceEvent, timeout, FALSE))
@@ -93,27 +106,30 @@ void DX12Commands::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE type)
 /// <summary>
 /// コマンドリストを作成します。
 /// </summary>
-void DX12Commands::CreateCommandList()
+void DX12Commands::CreateCommandList(D3D12_COMMAND_LIST_TYPE type)
 {
 	auto hr = m_pDevice->CreateCommandList(
 		0,
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		type,
 		m_pCommandAllocators[0].Get(),
 		nullptr,
 		IID_PPV_ARGS(m_pCommandList.GetAddressOf())
 	);
 	ThrowFailed(hr);
+
+	ThrowFailed(m_pCommandList->Close());
 }
 
 /// <summary>
 /// コマンドアロケータを作成します。
 /// </summary>
-void DX12Commands::CreateCommandAllocators()
+void DX12Commands::CreateCommandAllocators(D3D12_COMMAND_LIST_TYPE type)
 {
+	m_pCommandAllocators.resize(Window::FrameCount); // アロケータの数分リサイズ
 	for (auto i = 0u; i < Window::FrameCount; ++i)
 	{
 		auto hr = m_pDevice->CreateCommandAllocator(
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			type,
 			IID_PPV_ARGS(m_pCommandAllocators[i].GetAddressOf())
 		);
 		ThrowFailed(hr);
@@ -125,21 +141,16 @@ void DX12Commands::CreateCommandAllocators()
 /// </summary>
 void DX12Commands::CreateFence()
 {
-	for (uint32_t i = 0; i < Window::FrameCount; ++i)
-	{
-		m_FenceCounter[i] = 0;
-	}
-
 	// フェンスの生成
 	auto hr = m_pDevice->CreateFence(
-		m_FenceCounter[0],
+		0,
 		D3D12_FENCE_FLAG_NONE,
 		IID_PPV_ARGS(m_pFence.GetAddressOf())
 	);
 	ThrowFailed(hr);
 
 	// カウンター設定
-	m_FenceCounter[0] = 1;
+	m_FenceCounter = 1;
 
 	// イベントの生成
 	m_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);

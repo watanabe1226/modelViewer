@@ -19,7 +19,7 @@ namespace RendererInternal
 	std::unique_ptr<Window> window = nullptr;
 	std::unique_ptr<DX12Device> device = nullptr;
 	std::unique_ptr<DX12Commands> directCommands = nullptr;
-	std::unique_ptr<DX12Commands> copyCommands = nullptr;
+	//std::unique_ptr<DX12Commands> copyCommands = nullptr;
 
 	std::unique_ptr<DX12DescriptorHeap> RTVHeap = nullptr;
 	std::unique_ptr<DX12DescriptorHeap> DSVHeap = nullptr;
@@ -48,12 +48,21 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	CBVHeap = std::make_unique<DX12DescriptorHeap>(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, "CBVHeap", 5000, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 	// コマンドの生成
 	directCommands = std::make_unique<DX12Commands>(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	copyCommands = std::make_unique<DX12Commands>(D3D12_COMMAND_LIST_TYPE_COPY);
+	//copyCommands = std::make_unique<DX12Commands>(D3D12_COMMAND_LIST_TYPE_COPY);
 
 	// ウィンドウの作成
-	window = std::make_unique<Window>(L"Model Viewer", width, height);
+	window = std::make_unique<Window>(Utility::windowClassName, width, height);
 	m_Width = width;
 	m_Height = height;
+	
+	if (!OnInit())
+	{
+		assert(false && "Renderer initialization failed!");
+	}
+}
+
+Renderer::~Renderer()
+{
 }
 
 /// <summary>
@@ -227,7 +236,6 @@ bool Renderer::OnInit()
 			}
 
 			m_pCBVIndex[i] = CBVHeap->GetNextAvailableIndex();
-			m_Transforms[i] = std::make_unique<Transform>();
 			// 定数バッファビューの設定
 			D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 			desc.BufferLocation = m_pCB[i]->GetGPUVirtualAddress();
@@ -279,7 +287,7 @@ bool Renderer::OnInit()
 		desc.pStaticSamplers = nullptr;
 		desc.Flags = flag;
 
-		// TODO : ルートシグネチャの生成
+		// ルートシグネチャの生成
 		m_pRootSignature = std::make_unique<DX12RootSignature>(&desc);
 	}
 
@@ -372,17 +380,13 @@ bool Renderer::OnInit()
 		desc.SampleMask = UINT_MAX;
 		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		desc.NumRenderTargets = 1;
-		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 
 		// パイプラインステートの生成
-		hr = pDevice->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(m_pPSO->GetPipelineState().GetAddressOf()));
-		if (FAILED(hr))
-		{
-			return false;
-		}
+		m_pPSO = std::make_unique<DX12PipelineState>(&desc);
 	}
 	return true;
 }
@@ -392,7 +396,7 @@ bool Renderer::OnInit()
 /// </summary>
 void Renderer::Render()
 {
-	uint32_t backBufferIndex = window->GetCurrentBackBufferIndex();
+	auto backBufferIndex = window->GetCurrentBackBufferIndex();
 	// コマンドの記録を開始とリセット
 	directCommands->ResetCommand(backBufferIndex);
 	// リソースバリアの設定
@@ -405,7 +409,7 @@ void Renderer::Render()
 	// クリアカラーの設定
 	float clearColor[] = { 0.25f, 0.25f, 0.25f, 1.0f };
 	auto rtv = window->GetCurrentScreenRTV();
-	auto dsv = window->GetCurrentScreenRTV();
+	auto dsv = window->GetDepthDSV();
 	DX12Utility::BindAndClearRenderTarget(window.get(),
 		&rtv,
 		&dsv,
@@ -430,16 +434,18 @@ void Renderer::Render()
 		D3D12_RESOURCE_STATE_PRESENT);
 
 	// コマンドリストの実行
-	directCommands->ExecuteCommandList(backBufferIndex);
+	directCommands->ExecuteCommandList();
 
 	// 画面に表示
 	window->Present(1);
+
+	// GPUの処理完了を待機
+	directCommands->WaitGpu(INFINITE);
 }
 
 void Renderer::Resize()
 {
-	uint32_t backBufferIndex = window->GetCurrentBackBufferIndex();
-	directCommands->WaitGpu(INFINITE, backBufferIndex);
+	directCommands->WaitGpu(INFINITE);
 	window->Resize();
 }
 
@@ -451,29 +457,31 @@ ComPtr<ID3D12Device> DX12Access::GetDevice()
 		assert(false && "DXDevice hasn't been initialized yet, call will return nullptr");
 	}
 
-	return device.get();
+	return device.get()->GetDevice();
 }
 
 DX12Commands* DX12Access::GetCommands(D3D12_COMMAND_LIST_TYPE type)
 {
-	if (!directCommands || !copyCommands)
-	{
-		assert(false && "Commands haven't been initialized yet, call will return nullptr");
-	}
+	//if (!directCommands || !copyCommands)
+	//{
+	//	assert(false && "Commands haven't been initialized yet, call will return nullptr");
+	//}
 
-	switch (type)
-	{
-	case D3D12_COMMAND_LIST_TYPE_COPY:
-		return copyCommands.get();
-		break;
+	//switch (type)
+	//{
+	//case D3D12_COMMAND_LIST_TYPE_COPY:
+	//	return copyCommands.get();
+	//	break;
 
-	case D3D12_COMMAND_LIST_TYPE_DIRECT:
-		return directCommands.get();
-		break;
-	}
+	//case D3D12_COMMAND_LIST_TYPE_DIRECT:
+	//	return directCommands.get();
+	//	break;
+	//}
 
-	assert(false && "This command type hasn't been added yet!");
-	return nullptr;
+	//assert(false && "This command type hasn't been added yet!");
+	//return nullptr;
+
+	return directCommands.get();
 }
 
 DX12DescriptorHeap* DX12Access::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type)
