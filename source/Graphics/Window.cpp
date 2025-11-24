@@ -136,6 +136,7 @@ void Window::SetupWindow()
 
 	// ウィンドウサイズを調整
 	auto style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+	style = WS_OVERLAPPEDWINDOW;
 	AdjustWindowRect(&rect, style, FALSE);
 
 	// ウィンドウを生成
@@ -154,6 +155,8 @@ void Window::SetupWindow()
 		nullptr
 	);
 	assert(m_hWnd != nullptr);
+
+	GetWindowRect(m_hWnd, &rect);
 }
 
 void Window::CreateSwapChain()

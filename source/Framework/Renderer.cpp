@@ -27,12 +27,6 @@ namespace RendererInternal
 }
 using namespace RendererInternal;
 
-struct Vertex
-{
-	Vector3D position; // 頂点座標
-	Vector4D color;    // 頂点カラー
-};
-
 /// <summary>
 /// コンストラクタ
 /// </summary>
