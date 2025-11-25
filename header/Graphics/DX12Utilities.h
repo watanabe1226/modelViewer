@@ -4,6 +4,7 @@
 #include "Graphics/Window.h"
 #include "Graphics/DX12Device.h"
 #include "Graphics/DX12Commands.h"
+#include "../external/d3dx12.h"
 
 #define FILE_PREFIX __FILE__ "(" TO_STRING(__LINE__) "): " 
 #define DX12MSGThrowIfFailed(hr, msg) DX12Utility::CheckResultCodeD3D12(hr, FILE_PREFIX msg)

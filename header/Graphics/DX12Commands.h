@@ -9,7 +9,7 @@ public:
 	~DX12Commands();
 
 	void ExecuteCommandList();
-	void ResetCommand(uint32_t frameIndex);
+	void ResetCommand();
 
 	void WaitGpu(uint32_t timeout);
 
@@ -48,4 +48,9 @@ private:
 	/// フェンスカウンター
 	/// </summary>
 	uint64_t m_FenceCounter = 0;
+
+	/// <summary>
+	/// アロケータのインデックス
+	/// </summary>
+	uint32_t m_AllocatorIndex = 0;
 };

@@ -5,6 +5,8 @@
 class DX12Device;
 class DX12RootSignature;
 class DX12PipelineState;
+class Transform;
+class Texture;
 
 class Renderer
 {
@@ -47,6 +49,10 @@ private:
 	/// インデックスバッファビュー
 	/// </summary>
 	D3D12_INDEX_BUFFER_VIEW m_IBV;
+	/// <summary>
+	/// パイプラインステート
+	/// </summary>
+	std::unique_ptr<Texture> m_pTestTex = nullptr;
 	/// <summary>
 	/// 回転角
 	/// </summary>

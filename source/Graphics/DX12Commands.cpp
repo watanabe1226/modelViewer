@@ -51,10 +51,12 @@ void DX12Commands::ExecuteCommandList()
 	m_pCommandQueue->ExecuteCommandLists(_countof(ppCmdLists), ppCmdLists);
 }
 
-void DX12Commands::ResetCommand(uint32_t frameIndex)
+void DX12Commands::ResetCommand()
 {
-	m_pCommandAllocators[frameIndex]->Reset();
-	m_pCommandList->Reset(m_pCommandAllocators[frameIndex].Get(), nullptr);
+	m_pCommandAllocators[m_AllocatorIndex]->Reset();
+	m_pCommandList->Reset(m_pCommandAllocators[m_AllocatorIndex].Get(), nullptr);
+
+	m_AllocatorIndex = (m_AllocatorIndex + 1) % static_cast<uint32_t>(m_pCommandAllocators.size());
 }
 
 void DX12Commands::WaitGpu(uint32_t timeout)
