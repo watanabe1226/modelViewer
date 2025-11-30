@@ -1,12 +1,11 @@
 #include "Graphics/Texture.h"
 #include "Graphics/DX12Utilities.h"
-#include "Graphics/DX12Access.h"
 #include "Graphics/DX12DescriptorHeap.h"
+#include "Framework/Renderer.h"
 
-Texture::Texture(const std::wstring& filePath, bool isCube)
+Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube)
 {
-    auto pDevice = DX12Access::GetDevice().Get();
-
+	auto pDevice = pRenderer->GetDevice().Get();
     DirectX::TexMetadata metaData = {};
     DirectX::ScratchImage image = {};
     std::vector<D3D12_SUBRESOURCE_DATA> subResources;
@@ -18,12 +17,12 @@ Texture::Texture(const std::wstring& filePath, bool isCube)
     {
         // テクスチャ生成
         hr = DirectX::LoadFromWICFile(fileName.c_str(), DirectX::WIC_FLAGS_NONE, &metaData, image);
-        ThrowFailed(hr, "テクスチャの読み込みに失敗しました");
+        ThrowFailed(hr);
     }
     else if (ext == L"tga")
     {
         hr = DirectX::LoadFromTGAFile(fileName.c_str(), &metaData, image);
-        ThrowFailed(hr, "テクスチャの読み込みに失敗しました");
+        ThrowFailed(hr);
     }
 
     // アップロードヒープ用準備
@@ -92,7 +91,7 @@ Texture::Texture(const std::wstring& filePath, bool isCube)
     );
 
     // コマンドの記録を開始
-	auto pCommand = DX12Access::GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	auto pCommand = pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT);
     pCommand->ResetCommand();
 
     // テクスチャバッファの転送
@@ -100,7 +99,7 @@ Texture::Texture(const std::wstring& filePath, bool isCube)
     UpdateSubresources(pCommandList, m_pResource.Get(), m_pUploadResource.Get(), 0, 0, subResources.size(), subResources.data());
 
     // リソースバリア
-	DX12Utility::TransitionResource(m_pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    pRenderer->TransitionResource(m_pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     // コマンドの実行
     pCommand->ExecuteCommandList();
@@ -108,7 +107,7 @@ Texture::Texture(const std::wstring& filePath, bool isCube)
     pCommand->WaitGpu(INFINITY);
 
 	// SRVの作成
-	SRVHeap = DX12Access::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	SRVHeap = pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     srvIndex = SRVHeap->GetNextAvailableIndex();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = GetViewDesc(isCube, desc);

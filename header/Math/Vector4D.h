@@ -86,6 +86,16 @@ public:
         return (Size > SMALL_NUMBER) ? (*this * (1.f / Size)) : Vector4D(0.f);
     }
 
+    Vector4D cross(const Vector4D& vec1, const Vector4D& vec2) const noexcept
+    {
+        return Vector4D(
+            y * (vec1.z * vec2.w - vec2.z * vec1.w) - z * (vec1.y * vec2.w - vec2.y * vec1.w) + w * (vec1.y * vec2.z - vec1.z * vec2.y),
+            -(x * (vec1.z * vec2.w - vec2.z * vec1.w) - z * (vec1.x * vec2.w - vec2.x * vec1.w) + w * (vec1.x * vec2.z - vec2.x * vec1.z)),
+            x * (vec1.y * vec2.w - vec2.y * vec1.w) - y * (vec1.x * vec2.w - vec2.x * vec1.w) + w * (vec1.x * vec2.y - vec2.x * vec1.y),
+            -(x * (vec1.y * vec2.z - vec2.y * vec1.z) - y * (vec1.x * vec2.z - vec2.x * vec1.z) + z * (vec1.x * vec2.y - vec2.x * vec1.y))
+        );
+    }
+
 public:
     float x = 0.f, y = 0.f, z = 0.f, w = 0.f;
 };

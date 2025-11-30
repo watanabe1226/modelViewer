@@ -5,7 +5,7 @@
 class DX12Commands
 {
 public:
-	DX12Commands(D3D12_COMMAND_LIST_TYPE type);
+	DX12Commands(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE type);
 	~DX12Commands();
 
 	void ExecuteCommandList();

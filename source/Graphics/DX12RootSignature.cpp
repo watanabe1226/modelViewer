@@ -1,8 +1,7 @@
 #include "Graphics/DX12RootSignature.h"
-#include "Graphics/DX12Access.h"
 #include "Graphics/DX12Utilities.h"
 
-DX12RootSignature::DX12RootSignature(const D3D12_ROOT_SIGNATURE_DESC* pDesc)
+DX12RootSignature::DX12RootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGNATURE_DESC* pDesc)
 {
 	ComPtr<ID3DBlob> pBlob = nullptr;
 	ComPtr<ID3DBlob> pErrorBlob = nullptr;
@@ -17,7 +16,7 @@ DX12RootSignature::DX12RootSignature(const D3D12_ROOT_SIGNATURE_DESC* pDesc)
 	ThrowFailed(hr);
 
 	// ルートシグネチャの生成
-	hr = DX12Access::GetDevice().Get()->CreateRootSignature(
+	hr = pDevice->CreateRootSignature(
 		0,
 		pBlob->GetBufferPointer(),
 		pBlob->GetBufferSize(),

@@ -1,12 +1,11 @@
 #include "Graphics/DX12DescriptorHeap.h"
-#include "Graphics/DX12Access.h"
 #include "Graphics/DX12Utilities.h"
 #include "Utilities/Utility.h"
 
-DX12DescriptorHeap::DX12DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, const std::string& DescriptorName, uint32_t numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
+DX12DescriptorHeap::DX12DescriptorHeap(ID3D12Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, const std::string& DescriptorName, uint32_t numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
 	: m_NumDescriptors(numDescriptors)
 {
-	ID3D12Device* device = DX12Access::GetDevice().Get();
+	ID3D12Device* device = pDevice;
 	// ディスクリプタヒープの設定
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.NumDescriptors = m_NumDescriptors;

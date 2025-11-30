@@ -2,11 +2,12 @@
 #include "pch.h"
 
 class DX12DescriptorHeap;
+class Renderer;
 
 class Texture
 {
 public:
-	Texture(const std::wstring& filePath, bool isCube = false);
+	Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube = false);
 	~Texture();
 
 	uint32_t GetSRVIndex() const { return srvIndex; }
@@ -24,4 +25,5 @@ private:
 
 	std::wstring FileExtension(const std::wstring& filePath);
 	std::wstring ExChangeFileExtension(const std::wstring& filePath);
+	std::unordered_map<std::wstring, Texture*> m_pTextures;
 };

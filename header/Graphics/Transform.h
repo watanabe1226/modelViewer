@@ -1,8 +1,10 @@
 #pragma once
 #include "Math/Matrix4x4.h"
 
-struct alignas(256) Transform
+class alignas(256) Transform
 {
+public:
+	Transform();
 	Matrix4x4 World; // ワールド変換行列
 	Matrix4x4 View;  // ビュー変換行列
 	Matrix4x4 Proj;  // プロジェクション変換行列

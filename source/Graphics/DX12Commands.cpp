@@ -1,10 +1,9 @@
 #include "Graphics/DX12Commands.h"
-#include "Graphics/DX12Access.h"
 #include "Graphics/DX12Utilities.h"
 
-DX12Commands::DX12Commands(D3D12_COMMAND_LIST_TYPE type)
+DX12Commands::DX12Commands(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE type)
 {
-	m_pDevice = DX12Access::GetDevice().Get();
+	m_pDevice = pDevice;
 
 	CreateCommandQueue(type);
 	CreateCommandAllocators(type);

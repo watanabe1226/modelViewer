@@ -5,6 +5,7 @@
 #include "Utilities/Utility.h"
 
 #include "Framework/Renderer.h"
+#include "Framework/Scene.h"
 
 namespace EngineInternal
 {
@@ -21,6 +22,12 @@ Engine::Engine(uint32_t width, uint32_t height)
 {
 	RegisterWindowClass();
 	m_pRenderer = std::make_unique<Renderer>(width, height);
+	m_pActiveScene = std::make_unique<Scene>(m_pRenderer.get(), width, height);
+
+	m_pRenderer->SetScene(m_pActiveScene.get());
+
+	clock = new std::chrono::high_resolution_clock();
+	t0 = std::chrono::time_point_cast<std::chrono::milliseconds>((clock->now())).time_since_epoch();
 }
 
 /// <summary>
@@ -95,10 +102,16 @@ void Engine::Start()
 		m_pRenderer->Resize();
 		doResize = false;
 	}
+	auto t1 = std::chrono::time_point_cast<std::chrono::milliseconds>((clock->now())).time_since_epoch();
+	deltaTime = (t1 - t0).count() * .001;
+	t0 = t1;
+
+	m_pRenderer->BeginFrame();
 }
 
 void Engine::Update()
 {
+	m_pActiveScene->Update(deltaTime);
 }
 
 void Engine::Render()

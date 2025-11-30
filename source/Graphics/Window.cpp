@@ -1,17 +1,17 @@
 #include "Graphics/Window.h"
-#include "Graphics/DX12Access.h"
 #include "Graphics/DX12Utilities.h"
 #include "Graphics/DX12Commands.h"
 #include "Graphics/DX12DescriptorHeap.h"
+#include "Framework/Renderer.h"
 
-Window::Window(const std::wstring& applicationName, uint32_t width, uint32_t height)
+Window::Window(Renderer* pRenderer, const std::wstring& applicationName, uint32_t width, uint32_t height)
 	: m_WindowName(applicationName),
 	m_Width(width),
 	m_Height(height)
 {
-	m_pDevice = DX12Access::GetDevice().Get();
-	m_pRTVHeap = DX12Access::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_pDSVHeap = DX12Access::GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_pDevice = pRenderer->GetDevice().Get();
+	m_pRTVHeap = pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_pDSVHeap = pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	// RTVインデックスの取得
 	for (int i = 0; i < FrameCount; i++)
 	{
@@ -20,7 +20,7 @@ Window::Window(const std::wstring& applicationName, uint32_t width, uint32_t hei
 	m_DepthBufferDSV = m_pDSVHeap->GetNextAvailableIndex();
 
 	SetupWindow();
-	CreateSwapChain();
+	CreateSwapChain(pRenderer);
 
 	m_pScreenBuffers.resize(FrameCount);
 	UpdateRenderBuffers();
@@ -159,7 +159,7 @@ void Window::SetupWindow()
 	GetWindowRect(m_hWnd, &rect);
 }
 
-void Window::CreateSwapChain()
+void Window::CreateSwapChain(Renderer* pRenderer)
 {
 	// DXGIファクトリーの生成
 	ComPtr<IDXGIFactory4> pFactory = nullptr;
@@ -186,7 +186,7 @@ void Window::CreateSwapChain()
 
 	// スワップチェーンの生成
 	ComPtr<IDXGISwapChain> pSwapChain = nullptr;
-	ID3D12CommandQueue* pCommandQueue = DX12Access::GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandQueue().Get();
+	ID3D12CommandQueue* pCommandQueue = pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandQueue().Get();
 	hr = pFactory->CreateSwapChain(pCommandQueue, &desc, pSwapChain.GetAddressOf());
 	ThrowFailed(hr);
 

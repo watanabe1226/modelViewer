@@ -10,6 +10,14 @@ struct PSOutput
 
 };
 
+cbuffer Material : register(b1)
+{
+    float3 Difuuse;
+    float Alpha;
+    float3 Specular;
+    float Shininess;
+}
+
 SamplerState ColorSmp : register(s0);
 Texture2D ColorMap : register(t0);
 

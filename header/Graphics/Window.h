@@ -2,11 +2,12 @@
 #include "pch.h"
 
 class DX12DescriptorHeap;
+class Renderer;
 
 class Window
 {
 public:
-	Window(const std::wstring& applicationName, uint32_t width, uint32_t height);
+	Window(Renderer* pRenderer, const std::wstring& applicationName, uint32_t width, uint32_t height);
 	~Window();
 	void Present(uint32_t interval);
 	void Resize();
@@ -33,7 +34,7 @@ public:
 private:
 
 	void SetupWindow();
-	void CreateSwapChain();
+	void CreateSwapChain(Renderer* pRenderer);
 	void UpdateRenderBuffers();
 	void UpdateScreenBuffers();
 	void UpdateDepthBuffer();

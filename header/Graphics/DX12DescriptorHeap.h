@@ -5,6 +5,7 @@ class DX12DescriptorHeap
 {
 public:
 	DX12DescriptorHeap(
+		ID3D12Device* pDevice,
 		D3D12_DESCRIPTOR_HEAP_TYPE type, 
 		const std::string& DescriptorName,
 		uint32_t numDescriptors, 

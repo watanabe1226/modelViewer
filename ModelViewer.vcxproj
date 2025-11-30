@@ -19,6 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="source\Graphics\RenderStage.cpp" />
+    <ClCompile Include="source\Framework\Scene.cpp" />
+    <ClCompile Include="source\Graphics\Camera.cpp" />
+    <ClCompile Include="source\Graphics\ConstantBuffer.cpp" />
+    <ClCompile Include="source\Graphics\Model.cpp" />
+    <ClCompile Include="source\Graphics\RenderStages\SceneStage.cpp" />
+    <ClCompile Include="source\Graphics\Transform.cpp" />
     <ClCompile Include="source\Framework\Engine.cpp" />
     <ClCompile Include="source\Framework\Renderer.cpp" />
     <ClCompile Include="source\Graphics\DX12Commands.cpp" />
@@ -35,19 +42,27 @@
   <ItemGroup>
     <ClInclude Include="header\Framework\Engine.h" />
     <ClInclude Include="header\Framework\Renderer.h" />
-    <ClInclude Include="header\Graphics\DX12Access.h" />
+    <ClInclude Include="header\Framework\Scene.h" />
+    <ClInclude Include="header\Graphics\Camera.h" />
+    <ClInclude Include="header\Graphics\ConstantBuffer.h" />
     <ClInclude Include="header\Graphics\DX12Commands.h" />
     <ClInclude Include="header\Graphics\DX12DescriptorHeap.h" />
     <ClInclude Include="header\Graphics\DX12Device.h" />
     <ClInclude Include="header\Graphics\DX12PipelineState.h" />
     <ClInclude Include="header\Graphics\DX12RootSignature.h" />
     <ClInclude Include="header\Graphics\DX12Utilities.h" />
+    <ClInclude Include="header\Graphics\Lights.h" />
+    <ClInclude Include="header\Graphics\Materials.h" />
     <ClInclude Include="header\Graphics\Mesh.h" />
+    <ClInclude Include="header\Graphics\Model.h" />
+    <ClInclude Include="header\Graphics\RenderStage.h" />
+    <ClInclude Include="header\Graphics\RenderStages\SceneStage.h" />
     <ClInclude Include="header\Graphics\Texture.h" />
     <ClInclude Include="header\Graphics\Transform.h" />
     <ClInclude Include="header\Graphics\Window.h" />
     <ClInclude Include="header\Math\MathUtility.h" />
     <ClInclude Include="header\Math\Matrix4x4.h" />
+    <ClInclude Include="header\Math\Quaternion.h" />
     <ClInclude Include="header\Math\Vector2D.h" />
     <ClInclude Include="header\Math\Vector3D.h" />
     <ClInclude Include="header\Math\Vector4D.h" />
@@ -172,12 +187,14 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)external\assimp\build\lib\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>;assimp-vc143-mtd.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -190,14 +207,16 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)external\assimp\build\lib\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>;assimp-vc143-mt.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -208,13 +227,14 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);$(SolutionDir)..\external\assimp\build\lib\$(Configuration);$(SolutionDir)..\external\assimp\build\bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>assimp-vc143-mtd.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);$(SolutionDir)..\external\assimp\build\lib\$(Configuration);$(SolutionDir)..\external\assimp\build\bin\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)external\assimp\build\lib\$(Configuration)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>assimp-vc143-mtd.dll;%(DelayLoadDLLs);assimp-vc143-mtd.dll</DelayLoadDLLs>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -227,15 +247,16 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);$(SolutionDir)..\external\assimp\build\lib\$(Configuration);$(SolutionDir)..\external\assimp\build\bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>assimp-vc143-mt.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalLibraryDirectories>$(SolutionDir)external\DirectXTex\DirectXTex\Bin\Desktop_2022_Win10\x64\$(Configuration);$(SolutionDir)..\external\assimp\build\lib\$(Configuration);$(SolutionDir)..\external\assimp\build\bin\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)external\assimp\build\lib\$(Configuration)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>assimp-vc143-mt.dll;%(DelayLoadDLLs);assimp-vc143-mt.dll</DelayLoadDLLs>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

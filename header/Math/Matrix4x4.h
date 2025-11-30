@@ -180,6 +180,56 @@ public:
         return mat;
     }
 
+    static Matrix4x4 inverse(const Matrix4x4& matrix)
+    {
+        uint32_t a, i, j;
+        Matrix4x4 out;
+        Vector4D v, vec[3];
+        float det = 1.0f;
+
+        det = Matrix4x4::getDeterminant(matrix);
+        if (det == 0) return out;
+        for (i = 0; i < 4; i++)
+        {
+            for (j = 0; j < 4; j++)
+            {
+                if (j != i)
+                {
+                    a = j;
+                    if (j > i) a = a - 1;
+                    vec[a].x = (matrix.m_mat[j][0]);
+                    vec[a].y = (matrix.m_mat[j][1]);
+                    vec[a].z = (matrix.m_mat[j][2]);
+                    vec[a].w = (matrix.m_mat[j][3]);
+                }
+            }
+            v = vec[0].cross(vec[1], vec[2]);
+
+            out.m_mat[0][i] = (float)pow(-1.0f, i) * v.x / det;
+            out.m_mat[1][i] = (float)pow(-1.0f, i) * v.y / det;
+            out.m_mat[2][i] = (float)pow(-1.0f, i) * v.z / det;
+            out.m_mat[3][i] = (float)pow(-1.0f, i) * v.w / det;
+        }
+
+        return out;
+    }
+
+    static float getDeterminant(const Matrix4x4& matrix)
+    {
+        Vector4D mirror, v1, v2, v3;
+        float det;
+
+        v1 = Vector4D(matrix.m_mat[0][0], matrix.m_mat[1][0], matrix.m_mat[2][0], matrix.m_mat[3][0]);
+        v2 = Vector4D(matrix.m_mat[0][1], matrix.m_mat[1][1], matrix.m_mat[2][1], matrix.m_mat[3][1]);
+        v3 = Vector4D(matrix.m_mat[0][2], matrix.m_mat[1][2], matrix.m_mat[2][2], matrix.m_mat[3][2]);
+
+
+        mirror = v1.cross(v2, v3);
+        det = -(matrix.m_mat[0][3] * mirror.x + matrix.m_mat[1][3] * mirror.y + matrix.m_mat[2][3] * mirror.z +
+            matrix.m_mat[3][3] * mirror.w);
+
+        return det;
+    }
     //// クォータニオンから回転行列
     //static Matrix4x4 QuaternionToMatrix(const Quaternion& q) noexcept
     //{
@@ -230,8 +280,6 @@ public:
         mat.m_mat[2][2] = scale.z;
         return mat;
     }
-
-
 public:
     float m_mat[4][4] = {};
 };

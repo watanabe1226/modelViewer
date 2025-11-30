@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstring>
 #include <chrono>
+#include <unordered_map>
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <DirectXTex.h>
@@ -28,3 +29,10 @@ template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "DirectXTex.lib")
+#ifdef _DEBUG
+// Debug\¬‚Ì‚Æ‚« (––”ö‚É 'd' ‚ª‚Â‚­‚±‚Æ‚ª‘½‚¢)
+#pragma comment(lib, "assimp-vc143-mtd.lib")
+#else
+// Release\¬‚Ì‚Æ‚«
+#pragma comment(lib, "assimp-vc143-mt.lib")
+#endif
