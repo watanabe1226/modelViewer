@@ -18,6 +18,10 @@
 #include "Graphics/Camera.h"
 #include "Graphics/RenderStages/SceneStage.h"
 
+#include <imgui.h>
+#include <backends/imgui_impl_win32.h>
+#include <backends/imgui_impl_dx12.h>
+
 /// <summary>
 /// コンストラクタ
 /// </summary>
@@ -46,6 +50,9 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 
 	CreateConstantBuffer();
 
+
+	InitializeImGui();
+
 	// レンダーステージの作成
 	m_pSceneStage = std::make_unique<SceneStage>(this);
 }
@@ -65,11 +72,21 @@ void Renderer::BeginFrame()
 /// </summary>
 void Renderer::Render()
 {
+	// コマンドリストを取得
+	ID3D12GraphicsCommandList* pCmdList = m_pDirectCommand->GetGraphicsCommandList().Get();
 	// コマンドの記録を開始とリセット
 	m_pDirectCommand->ResetCommand();
-
 	// SceneのRender処理
-	m_pSceneStage->RecordStage(m_pDirectCommand->GetGraphicsCommandList().Get());
+	m_pSceneStage->RecordStage(pCmdList);
+
+	// 1. ディスクリプタヒープをセット
+	// ImGuiのフォントテクスチャ(SRV)を使用するために必要
+	ID3D12DescriptorHeap* ppHeaps[] = { m_pCBV_SRV_UAV->GetHeapPtr() };
+	pCmdList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+	// 2. ImGuiの描画データをコマンドリストに記録
+	// Engine::Render()でImGui::Render()が呼ばれたDrawDataを渡します
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCmdList);
 
 	// コマンドリストの実行
 	m_pDirectCommand->ExecuteCommandList();
@@ -109,6 +126,24 @@ void Renderer::CreateConstantBuffer()
 		auto name = "CB_" + std::to_string(i);
 		m_pCBs[i] = std::make_unique<ConstantBuffer>(m_pDevice->GetDevice().Get(), totalSize, name, nullptr);
 	}
+}
+
+void Renderer::InitializeImGui()
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+	ImGui::StyleColorsDark();
+	ImGui_ImplWin32_Init(m_pWindow->GetHwnd());
+
+	const uint32_t cbvIndex = m_pCBV_SRV_UAV->GetNextAvailableIndex();
+	ImGui_ImplDX12_Init(m_pDevice->GetDevice().Get(), Window::FrameCount, DXGI_FORMAT_R8G8B8A8_UNORM,
+		m_pCBV_SRV_UAV->GetHeapPtr(), m_pCBV_SRV_UAV->GetCpuHandle(cbvIndex), m_pCBV_SRV_UAV->GetGpuHandle(cbvIndex));
+
+	//フォントテクスチャを強制的に作成・アップロード
+	ImGui_ImplDX12_CreateDeviceObjects();
 }
 
 void Renderer::Resize()

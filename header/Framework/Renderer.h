@@ -68,6 +68,7 @@ public:
 		float* clearColor = nullptr);
 private:
 	void CreateConstantBuffer();
+	void InitializeImGui();
 
 	std::unique_ptr<Window> m_pWindow = nullptr;
 	std::unique_ptr<DX12Device> m_pDevice = nullptr;

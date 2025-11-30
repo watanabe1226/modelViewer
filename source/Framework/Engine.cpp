@@ -1,4 +1,6 @@
 #include "Framework/Engine.h"
+#include "Framework/Editor.h"
+#include "Framework/Input.h"
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
 #include "Math/MathUtility.h"
@@ -6,6 +8,11 @@
 
 #include "Framework/Renderer.h"
 #include "Framework/Scene.h"
+
+#include <backends/imgui_impl_win32.h>
+#include <backends/imgui_impl_dx12.h>
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace EngineInternal
 {
@@ -35,6 +42,9 @@ Engine::Engine(uint32_t width, uint32_t height)
 /// </summary>
 Engine::~Engine()
 {
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 /// <summary>
@@ -106,6 +116,10 @@ void Engine::Start()
 	deltaTime = (t1 - t0).count() * .001;
 	t0 = t1;
 
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
 	m_pRenderer->BeginFrame();
 }
 
@@ -116,6 +130,7 @@ void Engine::Update()
 
 void Engine::Render()
 {
+	ImGui::Render();
 	m_pRenderer->Render();
 }
 
@@ -146,6 +161,9 @@ LRESULT Engine::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 	}
+
+	// ImGui Windows callback //
+	ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }

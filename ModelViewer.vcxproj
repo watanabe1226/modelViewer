@@ -19,6 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="external\imgui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="external\imgui\imgui.cpp" />
+    <ClCompile Include="external\imgui\imgui_demo.cpp" />
+    <ClCompile Include="external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="external\imgui\imgui_tables.cpp" />
+    <ClCompile Include="external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="source\Framework\Editor.cpp" />
+    <ClCompile Include="source\Framework\Input.cpp" />
     <ClCompile Include="source\Graphics\RenderStage.cpp" />
     <ClCompile Include="source\Framework\Scene.cpp" />
     <ClCompile Include="source\Graphics\Camera.cpp" />
@@ -40,7 +49,13 @@
     <ClCompile Include="source\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="external\imgui\backends\imgui_impl_dx12.h" />
+    <ClInclude Include="external\imgui\backends\imgui_impl_win32.h" />
+    <ClInclude Include="external\imgui\imconfig.h" />
+    <ClInclude Include="external\imgui\imgui.h" />
+    <ClInclude Include="header\Framework\Editor.h" />
     <ClInclude Include="header\Framework\Engine.h" />
+    <ClInclude Include="header\Framework\Input.h" />
     <ClInclude Include="header\Framework\Renderer.h" />
     <ClInclude Include="header\Framework\Scene.h" />
     <ClInclude Include="header\Graphics\Camera.h" />
@@ -227,7 +242,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include;$(SolutionDir)external\imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -247,7 +262,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)header;$(SolutionDir)external\DirectXTex\DirectXTex;$(SolutionDir)..\external\assimp\build\include\assimp;$(SolutionDir)..\external\assimp\include\assimp;%(AdditionalIncludeDirectories);$(SolutionDir)external\assimp\include;$(SolutionDir)external\imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
