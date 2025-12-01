@@ -22,7 +22,7 @@ public:
 	void Update(float deltaTime);
 
 	void Draw(const Matrix4x4& viewMat, const Matrix4x4& projMat);
-
+	const std::string& GetName() const { return m_Name; }
 	Mesh* GetMesh(uint32_t index);
 
 	Transform m_Transform;

@@ -19,12 +19,16 @@ public:
 	const LightData& GetLightData();
 
 private:
-	std::unique_ptr<Camera> m_pCamera = nullptr;
 	std::vector<std::unique_ptr<Model>> m_pModels;
 	LightData m_LightData;
 	bool m_IsEditedLight = false;
 	float m_SceneRuntime = 0.f;
 
 	Renderer* m_pRenderer = nullptr;
+
+	// ƒJƒƒ‰ŠÖŒW
+	std::unique_ptr<Camera> m_pCamera = nullptr;
+	float m_CameraSpeed = 12.0f;
+	float m_CameraSpeedMultiplier = 6.0f;
 
 };

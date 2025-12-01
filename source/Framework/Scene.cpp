@@ -4,6 +4,7 @@
 #include "Framework/Renderer.h"
 #include "Graphics/Window.h"
 #include "Utilities/Utility.h"
+#include "Framework/Input.h"
 
 Scene::Scene(Renderer* pRenderer, uint32_t width, uint32_t height)
 {
@@ -24,13 +25,31 @@ Scene::~Scene()
 void Scene::Update(float deltaTime)
 {
 	m_SceneRuntime += deltaTime;
-	m_pCamera->Update();
-
 	if (m_IsEditedLight)
 	{
 		// ライトバッファの更新処理
 		m_IsEditedLight = false;
 	}
+
+	float movement = m_CameraSpeed * deltaTime;
+
+	if (Input::GetKey(KeyCode::Shift))
+	{
+		movement *= m_CameraSpeedMultiplier;
+	}
+
+	if (Input::GetKey(KeyCode::Ctrl))
+	{
+		movement /= m_CameraSpeedMultiplier;
+	}
+
+	int right = Input::GetKey(KeyCode::D) - Input::GetKey(KeyCode::A);
+	int up = Input::GetKey(KeyCode::E) - Input::GetKey(KeyCode::Q);
+	int forward = Input::GetKey(KeyCode::W) - Input::GetKey(KeyCode::S);
+
+	m_pCamera->MoveRight(right * movement);
+	m_pCamera->MoveUp(up * movement);
+	m_pCamera->MoveForward(forward * movement);
 
 	for (const auto& model : m_pModels)
 	{

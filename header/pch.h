@@ -13,7 +13,9 @@
 #include <cmath>
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include <chrono>
+#include <filesystem>
 #include <unordered_map>
 #include <d3d12.h>
 #include <dxgi1_4.h>

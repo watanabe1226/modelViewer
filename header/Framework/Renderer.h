@@ -17,7 +17,7 @@ class Renderer
 public:
 	Renderer(uint32_t width, uint32_t height);
 	~Renderer();
-	void BeginFrame();
+	void NewFrame();
 	void Render();
 	void Resize();
 

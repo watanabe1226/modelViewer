@@ -7,6 +7,8 @@
 #include "Framework/Scene.h"
 #include "Utilities/Utility.h"
 
+#include <backends/imgui_impl_dx12.h>
+
 SceneStage::SceneStage(Renderer* pRenderer) : RenderStage(pRenderer)
 {
 	CreateRootSignature(pRenderer);
@@ -52,6 +54,8 @@ void SceneStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 	{
 		model->Draw(view, proj);
 	}
+
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCmdList);
 
 	// リソースバリアの設定
 	m_pRenderer->TransitionResource(m_pWindow->GetCurrentScreenBuffer(),

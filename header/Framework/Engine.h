@@ -4,6 +4,7 @@
 
 class Renderer;
 class Scene;
+class Editor;
 
 class Engine
 {
@@ -28,10 +29,10 @@ private:
 private:
 	std::unique_ptr<Renderer> m_pRenderer = nullptr;
 	std::unique_ptr<Scene> m_pActiveScene = nullptr;
+	std::unique_ptr<Editor> m_pEditor = nullptr;
 
 	// Time //
 	float deltaTime = 1.0f;
-	std::chrono::high_resolution_clock* clock;
 	std::chrono::milliseconds t0;
 
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

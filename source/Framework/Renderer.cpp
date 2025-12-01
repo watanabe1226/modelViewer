@@ -47,9 +47,7 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 
 	// ミッシング用テクスチャの作成
 	m_pMissingTextures = std::make_unique<Texture>(this, Utility::GetCurrentDir() + L"/assets/textures/test.png");
-
 	CreateConstantBuffer();
-
 
 	InitializeImGui();
 
@@ -61,7 +59,7 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::BeginFrame()
+void Renderer::NewFrame()
 {
 	// フレームごとの初期化処理
 	m_CurrentOffset = 0;
@@ -79,15 +77,6 @@ void Renderer::Render()
 	// SceneのRender処理
 	m_pSceneStage->RecordStage(pCmdList);
 
-	// 1. ディスクリプタヒープをセット
-	// ImGuiのフォントテクスチャ(SRV)を使用するために必要
-	ID3D12DescriptorHeap* ppHeaps[] = { m_pCBV_SRV_UAV->GetHeapPtr() };
-	pCmdList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-	// 2. ImGuiの描画データをコマンドリストに記録
-	// Engine::Render()でImGui::Render()が呼ばれたDrawDataを渡します
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCmdList);
-
 	// コマンドリストの実行
 	m_pDirectCommand->ExecuteCommandList();
 
@@ -101,11 +90,6 @@ void Renderer::Render()
 void Renderer::SetScene(Scene* newScene)
 {
 	m_pScene = newScene;
-
-	//TODO： 仮対応
-	std::string filePath = "assets/models/SciFiHelm/SciFiHelmet.gltf";
-	m_pScene->AddModel(filePath);
-
 	m_pSceneStage->SetScene(newScene);
 }
 
@@ -141,9 +125,6 @@ void Renderer::InitializeImGui()
 	const uint32_t cbvIndex = m_pCBV_SRV_UAV->GetNextAvailableIndex();
 	ImGui_ImplDX12_Init(m_pDevice->GetDevice().Get(), Window::FrameCount, DXGI_FORMAT_R8G8B8A8_UNORM,
 		m_pCBV_SRV_UAV->GetHeapPtr(), m_pCBV_SRV_UAV->GetCpuHandle(cbvIndex), m_pCBV_SRV_UAV->GetGpuHandle(cbvIndex));
-
-	//フォントテクスチャを強制的に作成・アップロード
-	ImGui_ImplDX12_CreateDeviceObjects();
 }
 
 void Renderer::Resize()

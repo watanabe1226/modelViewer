@@ -8,6 +8,7 @@
 
 #include "Framework/Renderer.h"
 #include "Framework/Scene.h"
+#include "Framework/Editor.h"
 
 #include <backends/imgui_impl_win32.h>
 #include <backends/imgui_impl_dx12.h>
@@ -30,11 +31,13 @@ Engine::Engine(uint32_t width, uint32_t height)
 	RegisterWindowClass();
 	m_pRenderer = std::make_unique<Renderer>(width, height);
 	m_pActiveScene = std::make_unique<Scene>(m_pRenderer.get(), width, height);
+	m_pEditor = std::make_unique<Editor>(m_pActiveScene.get());
 
 	m_pRenderer->SetScene(m_pActiveScene.get());
+	m_pEditor->SetScene(m_pActiveScene.get());
 
-	clock = new std::chrono::high_resolution_clock();
-	t0 = std::chrono::time_point_cast<std::chrono::milliseconds>((clock->now())).time_since_epoch();
+	t0 = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
 /// <summary>
@@ -112,7 +115,8 @@ void Engine::Start()
 		m_pRenderer->Resize();
 		doResize = false;
 	}
-	auto t1 = std::chrono::time_point_cast<std::chrono::milliseconds>((clock->now())).time_since_epoch();
+	auto t1 = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::high_resolution_clock::now().time_since_epoch());
 	deltaTime = (t1 - t0).count() * .001;
 	t0 = t1;
 
@@ -120,11 +124,12 @@ void Engine::Start()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	m_pRenderer->BeginFrame();
+	m_pRenderer->NewFrame();
 }
 
 void Engine::Update()
 {
+	m_pEditor->Update(deltaTime);
 	m_pActiveScene->Update(deltaTime);
 }
 
@@ -154,10 +159,6 @@ LRESULT Engine::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_SIZE:
 		{
 			doResize = true;
-			break;
-		}
-		default:
-		{
 			break;
 		}
 	}

@@ -10,6 +10,7 @@
 Model::Model(Renderer* pRenderer, const std::wstring& filePath)
 {
 	m_pRenderer = pRenderer;
+	m_Name = Utility::WStringToString(filePath);
 	if (filePath.c_str() == nullptr)
 	{
 		assert(false && "ƒtƒ@ƒCƒ‹–¼‚ªnullptr‚Å‚·");
