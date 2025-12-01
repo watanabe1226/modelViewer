@@ -49,7 +49,7 @@ public:
 	const Matrix4x4& GetViewInv();
 
 private:
-	Vector3D m_Position = Vector3D(0.0f, 10.0f, -30.0f); //!< カメラ位置
+	Vector3D m_Position = Vector3D(0.0f, 5.0f, -10.0f); //!< カメラ位置
 	Vector3D m_Target = Vector3D(0.0f, 0.0f, 0.0f); //!< カメラの注視点
 	Vector3D m_Upward = Vector3D(0.0f, 1.0f, 0.0f); //!< カメラの上方向
 	Matrix4x4 m_View = Matrix4x4(); //!< ビュー行列

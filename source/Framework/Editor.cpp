@@ -10,9 +10,6 @@ Editor::Editor(Scene* pScene)
 	ImGuiStyleSettings();
 
 	LoadModelFilePaths("Assets/Models/", "Assets/Models/");
-
-	//std::string modelCount = std::to_string(m_ModelFilePaths.size());
-	//LOG("Found " + modelCount + " usable glTF(s) inside of 'Assets/Models'");
 }
 
 Editor::~Editor()
@@ -23,11 +20,7 @@ void Editor::Update(float deltaTime)
 	this->deltaTime = deltaTime;
 	ModelSelectionWindow();
 }
-//
-//void Editor::Update(float deltaTime)
-//{
-//}
-//
+
 void Editor::SetScene(Scene* newScene)
 {
 	m_pScene = newScene;

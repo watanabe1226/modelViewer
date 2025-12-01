@@ -34,6 +34,7 @@
     <ClCompile Include="source\Graphics\ConstantBuffer.cpp" />
     <ClCompile Include="source\Graphics\Model.cpp" />
     <ClCompile Include="source\Graphics\RenderStages\SceneStage.cpp" />
+    <ClCompile Include="source\Graphics\RenderStages\ShadowStage.cpp" />
     <ClCompile Include="source\Graphics\Transform.cpp" />
     <ClCompile Include="source\Framework\Engine.cpp" />
     <ClCompile Include="source\Framework\Renderer.cpp" />
@@ -72,6 +73,7 @@
     <ClInclude Include="header\Graphics\Model.h" />
     <ClInclude Include="header\Graphics\RenderStage.h" />
     <ClInclude Include="header\Graphics\RenderStages\SceneStage.h" />
+    <ClInclude Include="header\Graphics\RenderStages\ShadowStage.h" />
     <ClInclude Include="header\Graphics\Texture.h" />
     <ClInclude Include="header\Graphics\Transform.h" />
     <ClInclude Include="header\Graphics\Window.h" />
