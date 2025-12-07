@@ -7,7 +7,8 @@ class Renderer;
 class Texture
 {
 public:
-	Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube = false);
+	Texture(Renderer* pRenderer, const std::wstring& filePath,
+		bool isCube = false, D3D12_RESOURCE_FLAGS flag = D3D12_RESOURCE_FLAG_NONE);
 	~Texture();
 
 	uint32_t GetSRVIndex() const { return srvIndex; }

@@ -37,11 +37,6 @@ void SceneStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 		return;
 	}
 
-	// リソースバリアの設定
-	m_pRenderer->TransitionResource(m_pWindow->GetCurrentScreenBuffer(),
-		D3D12_RESOURCE_STATE_PRESENT,
-		D3D12_RESOURCE_STATE_RENDER_TARGET);
-
 	pCmdList->SetGraphicsRootSignature(m_pRootSignature->GetRootSignaturePtr());
 	pCmdList->SetPipelineState(m_pPSO->GetPipelineStatePtr());
 
@@ -69,13 +64,6 @@ void SceneStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 	{
 		model->Draw(view, proj);
 	}
-
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCmdList);
-
-	// リソースバリアの設定
-	m_pRenderer->TransitionResource(m_pWindow->GetCurrentScreenBuffer(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void SceneStage::CreateRootSignature(Renderer* pRenderer)

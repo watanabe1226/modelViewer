@@ -3,7 +3,7 @@
 #include "Graphics/DX12DescriptorHeap.h"
 #include "Framework/Renderer.h"
 
-Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube)
+Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube, D3D12_RESOURCE_FLAGS flag)
 {
 	auto pDevice = pRenderer->GetDevice().Get();
     DirectX::TexMetadata metaData = {};
@@ -24,6 +24,11 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube)
         hr = DirectX::LoadFromTGAFile(fileName.c_str(), &metaData, image);
         ThrowFailed(hr);
     }
+    else if (ext == L"hdr")
+    {
+        hr = DirectX::LoadFromHDRFile(fileName.c_str(), &metaData, image);
+        ThrowFailed(hr);
+    }
 
     // アップロードヒープ用準備
     DirectX::PrepareUpload(pDevice, image.GetImages(), image.GetImageCount(), metaData, subResources);
@@ -38,15 +43,15 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube)
     textureProp.VisibleNodeMask = 1;
 
     D3D12_RESOURCE_DESC desc = {};
-    desc.MipLevels = 1;
-    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.MipLevels = static_cast<UINT16>(metaData.mipLevels);
+    desc.Format = metaData.format;
     desc.Width = static_cast<UINT>(metaData.width);
     desc.Height = static_cast<UINT>(metaData.height);
-    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    desc.DepthOrArraySize = 1;
+    desc.Flags = flag;
+    desc.DepthOrArraySize = static_cast<UINT16>(metaData.arraySize);
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
-    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    desc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metaData.dimension);
 
     pDevice->CreateCommittedResource(
         &textureProp,

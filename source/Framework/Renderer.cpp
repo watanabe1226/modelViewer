@@ -18,6 +18,7 @@
 #include "Graphics/Camera.h"
 #include "Graphics/RenderStages/SceneStage.h"
 #include "Graphics/RenderStages/ShadowStage.h"
+#include "Graphics/RenderStages/SkydomeStage.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
@@ -55,6 +56,7 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	// レンダーステージの作成
 	m_pShadowStage = std::make_unique<ShadowStage>(this);
 	m_pSceneStage = std::make_unique<SceneStage>(this, m_pShadowStage.get());
+	m_pSkydomeStage = std::make_unique<SkydomeStage>(this);
 }
 
 Renderer::~Renderer()
@@ -81,8 +83,19 @@ void Renderer::Render()
 	pCommandList->SetDescriptorHeaps(1, m_pCBV_SRV_UAV->GetHeap().GetAddressOf());
 	// SceneのRender処理
 	m_pShadowStage->RecordStage(pCommandList);
-	m_pSceneStage->RecordStage(pCommandList);
 
+	// リソースバリアの設定
+	TransitionResource(m_pWindow->GetCurrentScreenBuffer(),
+		D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
+	m_pSceneStage->RecordStage(pCommandList);
+	m_pSkydomeStage->RecordStage(pCommandList);
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandList);
+
+	// リソースバリアの設定
+	TransitionResource(m_pWindow->GetCurrentScreenBuffer(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PRESENT);
 	// コマンドリストの実行
 	m_pDirectCommand->ExecuteCommandList();
 
@@ -103,6 +116,7 @@ void Renderer::SetScene(Scene* newScene)
 	m_pScene = newScene;
 	m_pSceneStage->SetScene(newScene);
 	m_pShadowStage->SetScene(newScene);
+	m_pSkydomeStage->SetScene(newScene);
 	for (const auto& model : m_pScene->GetModels())
 	{
 		if (model->GetName() == "assets/models/SciFiHelm/SciFiHelmet.gltf")

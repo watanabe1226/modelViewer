@@ -49,5 +49,21 @@ namespace Utility
         return path.substr(idx + 1, path.length() - idx - 1);
     }
 
+    inline std::wstring FileExtension(const std::wstring& filePath)
+    {
+        auto idx = filePath.rfind(L'.');
+        return filePath.substr(idx + 1, filePath.length() - idx - 1);
+    }
+
+    inline std::wstring ExChangeFileExtension(const std::wstring& filePath)
+    {
+        auto idx = filePath.rfind(L'.');
+        if (filePath.substr(idx + 1, filePath.length() - idx - 1) == L"psd")
+        {
+            return filePath.substr(0, idx) + L".tga";
+        }
+        else
+            return filePath;
+    }
     const static std::wstring windowClassName = L"ModelViewerWindow";
 }

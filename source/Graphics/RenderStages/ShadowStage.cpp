@@ -158,7 +158,7 @@ void ShadowStage::CreatePipeline(Renderer* pRenderer)
 	// ラスタライザーステートの設定
 	D3D12_RASTERIZER_DESC descRS;
 	descRS.FillMode = D3D12_FILL_MODE_SOLID;
-	descRS.CullMode = D3D12_CULL_MODE_NONE;
+	descRS.CullMode = D3D12_CULL_MODE_FRONT;
 	descRS.FrontCounterClockwise = FALSE;
 	descRS.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 	descRS.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
