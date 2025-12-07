@@ -22,10 +22,14 @@ public:
 	void Update(float deltaTime);
 
 	void Draw(const Matrix4x4& viewMat, const Matrix4x4& projMat);
+
+	void SetPosition(const Vector3D& pos);
+	void SetScale(const Vector3D& scale);
+
 	const std::string& GetName() const { return m_Name; }
 	Mesh* GetMesh(uint32_t index);
-
-	Transform m_Transform;
+	const std::vector<std::unique_ptr<Mesh>>& GetMeshes() const;
+	const TransformBuffer& GetTransform() const { return m_Transform; }
 	MaterialBuffer m_MaterialBuffer;
 	std::string m_Name;
 
@@ -37,8 +41,7 @@ private:
 
 	ID3D12GraphicsCommandList* m_pCommandList = nullptr;
 	Window* m_pWindow = nullptr;
-	ComPtr<ID3D12DescriptorHeap> m_pCBVSRVUAVHeaps = nullptr;
 	Renderer* m_pRenderer = nullptr;
-
+	TransformBuffer m_Transform;
 	float count = 0.f;
 };

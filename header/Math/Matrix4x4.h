@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "Vector3D.h"
 #include "Vector4D.h"
-//#include "Quaternion.h"
+#include "Quaternion.h"
 
 class Matrix4x4
 {
@@ -102,13 +102,13 @@ public:
     // =======================
     static Vector3D Apply(const Matrix4x4& matrix, const Vector3D& vec) noexcept
     {
-        const Vector4D row0(matrix.m_mat[0][0], matrix.m_mat[0][1], matrix.m_mat[0][2], matrix.m_mat[0][3]);
-        const Vector4D row1(matrix.m_mat[1][0], matrix.m_mat[1][1], matrix.m_mat[1][2], matrix.m_mat[1][3]);
-        const Vector4D row2(matrix.m_mat[2][0], matrix.m_mat[2][1], matrix.m_mat[2][2], matrix.m_mat[2][3]);
+        float x = vec.x * matrix.m_mat[0][0] + vec.y * matrix.m_mat[1][0] + vec.z * matrix.m_mat[2][0] + matrix.m_mat[3][0];
+        float y = vec.x * matrix.m_mat[0][1] + vec.y * matrix.m_mat[1][1] + vec.z * matrix.m_mat[2][1] + matrix.m_mat[3][1];
+        float z = vec.x * matrix.m_mat[0][2] + vec.y * matrix.m_mat[1][2] + vec.z * matrix.m_mat[2][2] + matrix.m_mat[3][2];
+        float w = vec.x * matrix.m_mat[0][3] + vec.y * matrix.m_mat[1][3] + vec.z * matrix.m_mat[2][3] + matrix.m_mat[3][3];
 
-        float x = vec.x * row0.x + vec.y * row0.y + vec.z * row0.z + row0.w;
-        float y = vec.x * row1.x + vec.y * row1.y + vec.z * row1.z + row1.w;
-        float z = vec.x * row2.x + vec.y * row2.y + vec.z * row2.z + row2.w;
+        // wで割る処理が必要な場合（射影変換後など）はここで行う
+        // if(w != 1.0f && w != 0.0f) { x /= w; y /= w; z /= w; }
 
         return Vector3D(x, y, z);
     }
@@ -230,34 +230,42 @@ public:
 
         return det;
     }
-    //// クォータニオンから回転行列
-    //static Matrix4x4 QuaternionToMatrix(const Quaternion& q) noexcept
-    //{
-    //    Matrix4x4 mat;
-    //    float w = q.w, x = q.x, y = q.y, z = q.z;
+    // クォータニオンから回転行列
+    static Matrix4x4 QuaternionToMatrix(const Quaternion& q) noexcept
+    {
+        Matrix4x4 mat;
+        float xx = q.x * q.x * 2.f;
+        float yy = q.y * q.y * 2.f;
+        float zz = q.z * q.z * 2.f;
+        float xy = q.x * q.y * 2.f;
+        float xz = q.x * q.z * 2.f;
+        float yz = q.y * q.z * 2.f;
+        float wx = q.w * q.x * 2.f;
+        float wy = q.w * q.y * 2.f;
+        float wz = q.w * q.z * 2.f;
 
-    //    mat.m_mat[0][0] = 1.f - 2.f * (y * y + z * z);
-    //    mat.m_mat[0][1] = 2.f * (x * y - z * w);
-    //    mat.m_mat[0][2] = 2.f * (x * z + y * w);
-    //    mat.m_mat[0][3] = 0.f;
+        mat.m_mat[0][0] = 1.f - yy - zz;
+        mat.m_mat[0][1] = xy + wz;
+        mat.m_mat[0][2] = xz - wy;
+        mat.m_mat[0][3] = 0.f;
 
-    //    mat.m_mat[1][0] = 2.f * (x * y + z * w);
-    //    mat.m_mat[1][1] = 1.f - 2.f * (x * x + z * z);
-    //    mat.m_mat[1][2] = 2.f * (y * z - x * w);
-    //    mat.m_mat[1][3] = 0.f;
+        mat.m_mat[1][0] = xy - wz;
+        mat.m_mat[1][1] = 1.f - xx - zz;
+        mat.m_mat[1][2] = yz + wx;
+        mat.m_mat[1][3] = 0.f;
 
-    //    mat.m_mat[2][0] = 2.f * (x * z - y * w);
-    //    mat.m_mat[2][1] = 2.f * (y * z + x * w);
-    //    mat.m_mat[2][2] = 1.f - 2.f * (x * x + y * y);
-    //    mat.m_mat[2][3] = 0.f;
+        mat.m_mat[2][0] = xz + wy;
+        mat.m_mat[2][1] = yz - wx;
+        mat.m_mat[2][2] = 1.f - xx - yy;
+        mat.m_mat[2][3] = 0.f;
 
-    //    mat.m_mat[3][0] = 0.f;
-    //    mat.m_mat[3][1] = 0.f;
-    //    mat.m_mat[3][2] = 0.f;
-    //    mat.m_mat[3][3] = 1.f;
+        mat.m_mat[3][0] = 0.f;
+        mat.m_mat[3][1] = 0.f;
+        mat.m_mat[3][2] = 0.f;
+        mat.m_mat[3][3] = 1.f;
 
-    //    return mat;
-    //}
+        return mat;
+    }
 
     // 平行移動行列
     static Matrix4x4 TransitionToMatrix(const Vector3D& trans) noexcept
@@ -270,6 +278,27 @@ public:
         return mat;
     }
 
+    // =======================
+    // Vector3D(オイラー角 degree)から回転行列
+    // ※回転順序は Z(Roll) -> X(Pitch) -> Y(Yaw) としています
+    // =======================
+    static Matrix4x4 RotationToMatrix(const Vector3D& degree) noexcept
+    {
+        // Degree -> Radian 変換
+        float radX = degree.x * MathUtility::DEG_TO_RAD;
+        float radY = degree.y * MathUtility::DEG_TO_RAD;
+        float radZ = degree.z * MathUtility::DEG_TO_RAD;
+
+        Matrix4x4 rx, ry, rz;
+        // setRotationX等は std::cos/sin を使うため Radian を渡す
+        rx.setRotationX(radX);
+        ry.setRotationY(radY);
+        rz.setRotationZ(radZ);
+
+        // 合成順序: Z(Roll) -> X(Pitch) -> Y(Yaw)
+        return rz * rx * ry;
+    }
+
     // スケーリング行列
     static Matrix4x4 ScalingToMatrix(const Vector3D& scale) noexcept
     {
@@ -280,6 +309,21 @@ public:
         mat.m_mat[2][2] = scale.z;
         return mat;
     }
+
+    void setTranslation(const Vector3D& trans) noexcept
+    {
+        m_mat[3][0] = trans.x;
+        m_mat[3][1] = trans.y;
+        m_mat[3][2] = trans.z;
+    }
+
+    void setScale(const Vector3D& trans) noexcept
+    {
+        m_mat[0][0] = trans.x;
+        m_mat[1][1] = trans.y;
+        m_mat[2][2] = trans.z;
+    }
+
 public:
     float m_mat[4][4] = {};
 };

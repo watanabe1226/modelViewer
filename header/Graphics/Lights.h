@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
+#include "Math/Matrix4x4.h"
 
 const int MAX_AMOUNT_OF_LIGHTS = 15;
 
@@ -11,6 +12,13 @@ struct PointLight
 	Vector3D Position = Vector3D();	// 00 - 12 //
 	float Intensity = 10.0f;		// 12 - 16 //
 	Vector4D Color = Vector4D();	// 16 - 32 //
+};
+
+struct alignas(256) ShadowLightData
+{
+	Matrix4x4 ViewProj; // 16 floats
+	Vector3D Direction; // 3 floats
+	float Padding;      // 1 float (çáåv20 floats)
 };
 
 struct alignas(256) LightData

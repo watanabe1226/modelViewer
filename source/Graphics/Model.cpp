@@ -6,6 +6,7 @@
 #include "Graphics/DX12Commands.h"
 #include "Framework/Renderer.h"
 #include "Graphics/Texture.h"
+#include "Math/Matrix4x4.h"
 
 Model::Model(Renderer* pRenderer, const std::wstring& filePath)
 {
@@ -66,11 +67,10 @@ Model::Model(Renderer* pRenderer, const std::wstring& filePath)
 
 	pScene = nullptr;
 
-	m_Transform = Transform();
+	m_Transform = TransformBuffer();
 
 	m_pCommandList = m_pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetGraphicsCommandList().Get();
 	m_pWindow = m_pRenderer->GetWindow();
-	m_pCBVSRVUAVHeaps = m_pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)->GetHeap();
 }
 
 Model::~Model()
@@ -96,10 +96,9 @@ void Model::Draw(const Matrix4x4& viewMat, const Matrix4x4& projMat)
 		auto mesh = m_pMeshes[i].get();
 		auto vbv = mesh->GetVBV();
 		auto ibv = mesh->GetIBV();
-		m_pCommandList->SetDescriptorHeaps(1, m_pCBVSRVUAVHeaps.GetAddressOf());
 		m_Transform.View = viewMat;
 		m_Transform.Proj = projMat;
-		auto transformGPUAddress = m_pRenderer->AllocateConstantBuffer<Transform>(m_Transform, backBufferIndex);
+		auto transformGPUAddress = m_pRenderer->AllocateConstantBuffer<TransformBuffer>(m_Transform, backBufferIndex);
 		m_pCommandList->SetGraphicsRootConstantBufferView(0, transformGPUAddress);
 		auto materialIndex = mesh->GetMaterialIndex();
 		if (materialIndex != -1)
@@ -118,8 +117,8 @@ void Model::Draw(const Matrix4x4& viewMat, const Matrix4x4& projMat)
 			m_MaterialBuffer.Difuuse = m_pRenderer->GetHalfVector3D();
 		}
 		auto matGPUAddress = m_pRenderer->AllocateConstantBuffer<MaterialBuffer>(m_MaterialBuffer, backBufferIndex);
-		m_pCommandList->SetGraphicsRootConstantBufferView(1, matGPUAddress);
-		m_pCommandList->SetGraphicsRootDescriptorTable(2, mesh->GetDiffuseTex()->GetSRV());
+		m_pCommandList->SetGraphicsRootConstantBufferView(2, matGPUAddress);
+		m_pCommandList->SetGraphicsRootDescriptorTable(4, mesh->GetDiffuseTex()->GetSRV());
 
 		m_pCommandList->IASetVertexBuffers(0, 1, &vbv);
 		m_pCommandList->IASetIndexBuffer(&ibv);
@@ -127,9 +126,25 @@ void Model::Draw(const Matrix4x4& viewMat, const Matrix4x4& projMat)
 	}
 }
 
+void Model::SetPosition(const Vector3D& pos)
+{
+	m_Transform.World.setTranslation(pos);
+}
+
+void Model::SetScale(const Vector3D& scale)
+{
+	m_Transform.World.setScale(scale);
+}
+
+
 Mesh* Model::GetMesh(uint32_t index)
 {
 	return m_pMeshes.at(index).get();
+}
+
+const std::vector<std::unique_ptr<Mesh>>& Model::GetMeshes() const
+{
+	return m_pMeshes;
 }
 
 void Model::PerseMaterial(const aiMaterial* pSrcMat, Material& dstMat)

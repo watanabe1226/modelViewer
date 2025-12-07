@@ -17,6 +17,7 @@
 #include "Graphics/Texture.h"
 #include "Graphics/Camera.h"
 #include "Graphics/RenderStages/SceneStage.h"
+#include "Graphics/RenderStages/ShadowStage.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
@@ -52,7 +53,8 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	InitializeImGui();
 
 	// レンダーステージの作成
-	m_pSceneStage = std::make_unique<SceneStage>(this);
+	m_pShadowStage = std::make_unique<ShadowStage>(this);
+	m_pSceneStage = std::make_unique<SceneStage>(this, m_pShadowStage.get());
 }
 
 Renderer::~Renderer()
@@ -71,11 +73,15 @@ void Renderer::NewFrame()
 void Renderer::Render()
 {
 	// コマンドリストを取得
-	ID3D12GraphicsCommandList* pCmdList = m_pDirectCommand->GetGraphicsCommandList().Get();
+	auto pCommandList = m_pDirectCommand->GetGraphicsCommandList().Get();
 	// コマンドの記録を開始とリセット
 	m_pDirectCommand->ResetCommand();
+
+	pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pCommandList->SetDescriptorHeaps(1, m_pCBV_SRV_UAV->GetHeap().GetAddressOf());
 	// SceneのRender処理
-	m_pSceneStage->RecordStage(pCmdList);
+	m_pShadowStage->RecordStage(pCommandList);
+	m_pSceneStage->RecordStage(pCommandList);
 
 	// コマンドリストの実行
 	m_pDirectCommand->ExecuteCommandList();
@@ -87,10 +93,23 @@ void Renderer::Render()
 	m_pDirectCommand->WaitGpu(INFINITE);
 }
 
+void Renderer::Update(float deltaTime)
+{
+	m_pShadowStage->Update(deltaTime);
+}
+
 void Renderer::SetScene(Scene* newScene)
 {
 	m_pScene = newScene;
 	m_pSceneStage->SetScene(newScene);
+	m_pShadowStage->SetScene(newScene);
+	for (const auto& model : m_pScene->GetModels())
+	{
+		if (model->GetName() == "assets/models/SciFiHelm/SciFiHelmet.gltf")
+		{
+			model->SetPosition(Vector3D(0.0f, 1.5f, 0.0f));
+		}
+	}
 }
 
 void Renderer::CreateTextureFromFile(const std::wstring& filePath)

@@ -131,6 +131,7 @@ void Engine::Update()
 {
 	m_pEditor->Update(deltaTime);
 	m_pActiveScene->Update(deltaTime);
+	m_pRenderer->Update(deltaTime);
 }
 
 void Engine::Render()

@@ -1,11 +1,33 @@
 #include "Graphics/RenderStages/ShadowStage.h"
 #include "Graphics/DX12RootSignature.h"
 #include "Graphics/DX12PipelineState.h"
+#include "Graphics/DepthBuffer.h"
+#include "Graphics/Model.h"
+#include "Graphics/Mesh.h"
+#include "Graphics/Camera.h"
 #include "Framework/Renderer.h"
+#include "Framework/Scene.h"
 #include "Utilities/Utility.h"
+#include "Math/MathUtility.h"
+
+#include <imgui.h>
 
 ShadowStage::ShadowStage(Renderer* pRenderer) : RenderStage(pRenderer)
 {
+	m_pDepthBuffer = std::make_unique<DepthBuffer>(pRenderer, m_DepthBufferWidth, m_DepthBufferHeight);
+	// ビューポートとシザー矩形の設定
+	m_Viewport.TopLeftX = 0.0f;
+	m_Viewport.TopLeftY = 0.0f;
+	m_Viewport.Width = static_cast<float>(m_DepthBufferWidth);
+	m_Viewport.Height = static_cast<float>(m_DepthBufferHeight);
+	m_Viewport.MinDepth = 0.0f;
+	m_Viewport.MaxDepth = 1.0f;
+
+	m_Scissor.left = 0;
+	m_Scissor.right = static_cast<LONG>(m_DepthBufferWidth);
+	m_Scissor.top = 0;
+	m_Scissor.bottom = static_cast<LONG>(m_DepthBufferHeight);
+
 	CreateRootSignature(pRenderer);
 	CreatePipeline(pRenderer);
 }
@@ -16,14 +38,79 @@ ShadowStage::~ShadowStage()
 
 void ShadowStage::Update(float deltaTime)
 {
+	auto depthSRV = m_pDepthBuffer->GetSRV();
+
+	ImGui::Begin("Depth Buffer");
+	ImGui::Image((ImTextureID)depthSRV.ptr, ImVec2(256, 256));
+	ImGui::DragFloat("light X", &lightX, 1, 0, 100);
+	ImGui::DragFloat("light Y", &lightY, 1, -30, -60);
+	ImGui::DragFloat("shadowDistance", &m_LightDistance, 1, 0, 200);
+	ImGui::End();
+	SetDirectionalLightRotation(Vector3D(lightX, lightY, 0.0f));
 }
 
 void ShadowStage::SetScene(Scene* newScene)
 {
+	m_pScene = newScene;
+	m_pMainCamera = m_pScene->GetCamera();
+	SetDirectionalLightRotation(Vector3D(50.0f, -45.0f, 0.0f));
 }
 
 void ShadowStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 {
+	if (m_pScene == nullptr)
+	{
+		assert(false && "シーンがセットされていません");
+		return;
+	}
+
+	auto depthView = m_pDepthBuffer->GetDSV();
+	auto depthBuffer = m_pDepthBuffer->GetResource();
+	m_pRenderer->TransitionResource(depthBuffer,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+	auto pCommandList = m_pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetGraphicsCommandList().Get();
+
+	pCommandList->ClearDepthStencilView(depthView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	pCommandList->SetGraphicsRootSignature(m_pRootSignature->GetRootSignaturePtr());
+	pCommandList->SetPipelineState(m_pPSO->GetPipelineStatePtr());
+
+	pCommandList->RSSetViewports(1, &m_Viewport);
+	pCommandList->RSSetScissorRects(1, &m_Scissor);
+	pCommandList->OMSetRenderTargets(0, nullptr, FALSE, &depthView);
+	auto lightMat = GetVPMat();
+	for (const auto& model : m_pScene->GetModels())
+	{
+		pCommandList->SetGraphicsRoot32BitConstants(0, 16, &lightMat, 0);
+		auto world = model->GetTransform().World;
+		pCommandList->SetGraphicsRoot32BitConstants(0, 16, &world, 16);
+
+		for (const auto& mesh : model->GetMeshes())
+		{
+			auto vbv = mesh->GetVBV();
+			auto ibv = mesh->GetIBV();
+			pCommandList->IASetVertexBuffers(0, 1, &vbv);
+			pCommandList->IASetIndexBuffer(&ibv);
+
+			pCommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+		}
+	}
+
+	m_pRenderer->TransitionResource(depthBuffer,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
+const Matrix4x4& ShadowStage::GetVPMat() const
+{
+	auto view = m_DirectionalLightTrans.GetView();
+	auto proj = Matrix4x4::setOrthoLH(m_LightViewSize, m_LightViewSize, 1, 1000);
+	return view * proj;
+}
+
+const Vector3D& ShadowStage::GetLightDir() const
+{
+	return m_DirectionalLightTrans.GetForward();
 }
 
 void ShadowStage::CreateRootSignature(Renderer* pRenderer)
@@ -33,57 +120,22 @@ void ShadowStage::CreateRootSignature(Renderer* pRenderer)
 	flag |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
 	flag |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	// ルートパラメータの設定
-	D3D12_DESCRIPTOR_RANGE range = {};
-	range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range.NumDescriptors = 1;
-	range.BaseShaderRegister = 0; // t0
-	range.RegisterSpace = 0;
-	range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
 	// ルートパラメータ
-	D3D12_ROOT_PARAMETER param[3] = {};
+	D3D12_ROOT_PARAMETER param[1] = {};
 
-	// Transform CB : RootCBV
-	param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	param[0].Descriptor.ShaderRegister = 0; // b0
-	param[0].Descriptor.RegisterSpace = 0;
+	// Light Model Matrix CB : 32bitconst
+	param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	param[0].Constants.Num32BitValues = 32;
+	param[0].Constants.ShaderRegister = 0;
+	param[0].Constants.RegisterSpace = 0;
 	param[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-	// Material CB : RootCBV
-	param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	param[1].DescriptorTable.NumDescriptorRanges = 1;  // b1
-	param[1].Descriptor.RegisterSpace = 0;
-	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	// Texture Table : DescriptorTable
-	param[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	param[2].DescriptorTable.NumDescriptorRanges = 1;
-	param[2].DescriptorTable.pDescriptorRanges = &range;
-	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	// スタティックサンプラーの設定
-	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.MipLODBias = D3D12_DEFAULT_MIP_LOD_BIAS;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	samplerDesc.MinLOD = -D3D12_FLOAT32_MAX;
-	samplerDesc.MaxLOD = +D3D12_FLOAT32_MAX;
-	samplerDesc.ShaderRegister = 0;
-	samplerDesc.RegisterSpace = 0;
-	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	// ルートシグネチャの設定
 	D3D12_ROOT_SIGNATURE_DESC desc = {};
 	desc.NumParameters = _countof(param);
-	desc.NumStaticSamplers = 1;
+	desc.NumStaticSamplers = 0;
 	desc.pParameters = param;
-	desc.pStaticSamplers = &samplerDesc;
+	desc.pStaticSamplers = nullptr;
 	desc.Flags = flag;
 
 	// ルートシグネチャの生成
@@ -94,7 +146,7 @@ void ShadowStage::CreateRootSignature(Renderer* pRenderer)
 void ShadowStage::CreatePipeline(Renderer* pRenderer)
 {
 	// 入力レイアウトの設定
-	D3D12_INPUT_ELEMENT_DESC elements[4];
+	D3D12_INPUT_ELEMENT_DESC elements[1];
 	elements[0].SemanticName = "POSITION";
 	elements[0].SemanticIndex = 0;
 	elements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -102,30 +154,6 @@ void ShadowStage::CreatePipeline(Renderer* pRenderer)
 	elements[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	elements[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 	elements[0].InstanceDataStepRate = 0;
-
-	elements[1].SemanticName = "NORMAL";
-	elements[1].SemanticIndex = 0;
-	elements[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	elements[1].InputSlot = 0;
-	elements[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	elements[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	elements[1].InstanceDataStepRate = 0;
-
-	elements[2].SemanticName = "TEXCOORD";
-	elements[2].SemanticIndex = 0;
-	elements[2].Format = DXGI_FORMAT_R32G32_FLOAT;
-	elements[2].InputSlot = 0;
-	elements[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	elements[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	elements[2].InstanceDataStepRate = 0;
-
-	elements[3].SemanticName = "TANGENT";
-	elements[3].SemanticIndex = 0;
-	elements[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	elements[3].InputSlot = 0;
-	elements[3].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	elements[3].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	elements[3].InstanceDataStepRate = 0;
 
 	// ラスタライザーステートの設定
 	D3D12_RASTERIZER_DESC descRS;
@@ -135,7 +163,7 @@ void ShadowStage::CreatePipeline(Renderer* pRenderer)
 	descRS.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 	descRS.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
 	descRS.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-	descRS.DepthClipEnable = FALSE;
+	descRS.DepthClipEnable = TRUE;
 	descRS.MultisampleEnable = FALSE;
 	descRS.AntialiasedLineEnable = FALSE;
 	descRS.ForcedSampleCount = 0;
@@ -160,15 +188,10 @@ void ShadowStage::CreatePipeline(Renderer* pRenderer)
 	}
 
 	ComPtr<ID3DBlob> vsBlob;
-	ComPtr<ID3DBlob> psBlob;
 
 	// 頂点シェーダー読み込み
 	static const std::wstring ShaderFilePathName = Utility::GetCurrentDir() + L"/assets/shaders/";
-	auto hr = D3DReadFileToBlob((ShaderFilePathName + L"SimpleTexVS.cso").c_str(), vsBlob.GetAddressOf());
-	ThrowFailed(hr);
-
-	// ピクセルシェーダー読み込み
-	hr = D3DReadFileToBlob((ShaderFilePathName + L"SimpleTexPS.cso").c_str(), psBlob.GetAddressOf());
+	auto hr = D3DReadFileToBlob((ShaderFilePathName + L"ShadowVS.cso").c_str(), vsBlob.GetAddressOf());
 	ThrowFailed(hr);
 
 	// 深度ステンシルステートの設定
@@ -183,14 +206,14 @@ void ShadowStage::CreatePipeline(Renderer* pRenderer)
 	desc.InputLayout = { elements, _countof(elements) };
 	desc.pRootSignature = m_pRootSignature->GetRootSignaturePtr();
 	desc.VS = { vsBlob->GetBufferPointer(), vsBlob->GetBufferSize() };
-	desc.PS = { psBlob->GetBufferPointer(), psBlob->GetBufferSize() };
+	desc.PS = { nullptr, 0 }; // シャドウマップ生成に色は不要
 	desc.RasterizerState = descRS;
 	desc.BlendState = descBS;
 	desc.DepthStencilState = descDSS;
 	desc.SampleMask = UINT_MAX;
 	desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	desc.NumRenderTargets = 1;
-	desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.NumRenderTargets = 0;
+	desc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 	desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
@@ -198,4 +221,13 @@ void ShadowStage::CreatePipeline(Renderer* pRenderer)
 	// パイプラインステートの生成
 	auto pDevice = m_pRenderer->GetDevice().Get();
 	m_pPSO = std::make_unique<DX12PipelineState>(pDevice, &desc);
+}
+
+void ShadowStage::SetDirectionalLightRotation(const Vector3D& vec)
+{
+	m_DirectionalLightTrans.SetRotation(vec);
+	auto forward = m_DirectionalLightTrans.GetForward();
+	auto target = m_pMainCamera->GetTarget();
+	auto pos = target - (forward * m_LightDistance);
+	m_DirectionalLightTrans.SetPosition(pos);
 }

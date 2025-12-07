@@ -3,13 +3,17 @@
 #include "Graphics/DX12PipelineState.h"
 #include "Graphics/Model.h"
 #include "Graphics/Camera.h"
+#include "Graphics/DepthBuffer.h"
 #include "Framework/Renderer.h"
 #include "Framework/Scene.h"
 #include "Utilities/Utility.h"
 
+#include "Graphics/RenderStages/ShadowStage.h"
+
 #include <backends/imgui_impl_dx12.h>
 
-SceneStage::SceneStage(Renderer* pRenderer) : RenderStage(pRenderer)
+SceneStage::SceneStage(Renderer* pRenderer, ShadowStage* pShadowStage) 
+	: RenderStage(pRenderer), m_pShadowStage(pShadowStage)
 {
 	CreateRootSignature(pRenderer);
 	CreatePipeline(pRenderer);
@@ -38,7 +42,6 @@ void SceneStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 		D3D12_RESOURCE_STATE_PRESENT,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	pCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pCmdList->SetGraphicsRootSignature(m_pRootSignature->GetRootSignaturePtr());
 	pCmdList->SetPipelineState(m_pPSO->GetPipelineStatePtr());
 
@@ -48,8 +51,20 @@ void SceneStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 	auto dsv = m_pWindow->GetDepthDSV();
 	m_pRenderer->BindAndClearRenderTarget(m_pWindow, &rtv, &dsv, clearColor);
 
+	auto cameraPos = m_pCamera->GetPosition();
+	auto cameraPosVec4D = Vector4D(cameraPos.x, cameraPos.y, cameraPos.z, 1.0f);
 	auto view = m_pCamera->GetView();
 	auto proj = m_pCamera->GetProj();
+	pCmdList->SetGraphicsRoot32BitConstants(1, 4, &cameraPosVec4D, 0);
+	pCmdList->SetGraphicsRootDescriptorTable(5, m_pShadowStage->GetDepthBuffer()->GetSRV());
+
+	// ライト行列
+	m_ShadowLightData.ViewProj = m_pShadowStage->GetVPMat();
+	m_ShadowLightData.Direction = m_pShadowStage->GetLightDir();
+	m_ShadowLightData.Padding = 0.0f;
+	auto lightVP = m_pShadowStage->GetVPMat();
+	pCmdList->SetGraphicsRoot32BitConstants(3, 20, &m_ShadowLightData, 0);
+
 	for (const auto& model : m_pScene->GetModels())
 	{
 		model->Draw(view, proj);
@@ -78,8 +93,15 @@ void SceneStage::CreateRootSignature(Renderer* pRenderer)
 	range.RegisterSpace = 0;
 	range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	D3D12_DESCRIPTOR_RANGE shadowRange = {};
+	shadowRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	shadowRange.NumDescriptors = 1;
+	shadowRange.BaseShaderRegister = 1; // t1
+	shadowRange.RegisterSpace = 0;
+	shadowRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	// ルートパラメータ
-	D3D12_ROOT_PARAMETER param[3] = {};
+	D3D12_ROOT_PARAMETER param[6] = {};
 
 	// Transform CB : RootCBV
 	param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -87,40 +109,73 @@ void SceneStage::CreateRootSignature(Renderer* pRenderer)
 	param[0].Descriptor.RegisterSpace = 0;
 	param[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-	// Material CB : RootCBV
-	param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	param[1].DescriptorTable.NumDescriptorRanges = 1;  // b1
-	param[1].Descriptor.RegisterSpace = 0;
-	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	// CameraPosition CB : RootCBV
+	param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	param[1].Constants.ShaderRegister = 1;  // b1
+	param[1].Constants.RegisterSpace = 0;
+	param[1].Constants.Num32BitValues = 4; // float4つ
+	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-	// Texture Table : DescriptorTable
-	param[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	param[2].DescriptorTable.NumDescriptorRanges = 1;
-	param[2].DescriptorTable.pDescriptorRanges = &range;
-	param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	// Material CB : RootCBV
+	param[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	param[2].DescriptorTable.NumDescriptorRanges = 2;  // b2
+	param[2].Descriptor.RegisterSpace = 0;
+	param[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	// LIghtMat // シャドウマップ計算用
+	param[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	param[3].Constants.ShaderRegister = 3;  // b3
+	param[3].Constants.RegisterSpace = 0;
+	param[3].Constants.Num32BitValues = 20; // Mat4x4 + vector3 + pad
+	param[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// Textures Table : DescriptorTable t0
+	param[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	param[4].DescriptorTable.NumDescriptorRanges = 1;
+	param[4].DescriptorTable.pDescriptorRanges = &range;
+	param[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	// ShadowMap Table : DescriptorTable t1
+	param[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	param[5].DescriptorTable.NumDescriptorRanges = 1;
+	param[5].DescriptorTable.pDescriptorRanges = &shadowRange;
+	param[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	// スタティックサンプラーの設定
-	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.MipLODBias = D3D12_DEFAULT_MIP_LOD_BIAS;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	samplerDesc.MinLOD = -D3D12_FLOAT32_MAX;
-	samplerDesc.MaxLOD = +D3D12_FLOAT32_MAX;
-	samplerDesc.ShaderRegister = 0;
-	samplerDesc.RegisterSpace = 0;
-	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	D3D12_STATIC_SAMPLER_DESC samplerDesc[2] = {};
+	samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].MipLODBias = D3D12_DEFAULT_MIP_LOD_BIAS;
+	samplerDesc[0].MaxAnisotropy = 1;
+	samplerDesc[0].ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	samplerDesc[0].BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	samplerDesc[0].MinLOD = -D3D12_FLOAT32_MAX;
+	samplerDesc[0].MaxLOD = +D3D12_FLOAT32_MAX;
+	samplerDesc[0].ShaderRegister = 0;
+	samplerDesc[0].RegisterSpace = 0;
+	samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	samplerDesc[1].Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	samplerDesc[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	samplerDesc[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	samplerDesc[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	samplerDesc[1].MipLODBias = D3D12_DEFAULT_MIP_LOD_BIAS;
+	samplerDesc[1].MaxAnisotropy = 1;
+	samplerDesc[1].ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	samplerDesc[1].MinLOD = -D3D12_FLOAT32_MAX;
+	samplerDesc[1].MaxLOD = +D3D12_FLOAT32_MAX;
+	samplerDesc[1].ShaderRegister = 1;
+	samplerDesc[1].RegisterSpace = 0;
+	samplerDesc[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	// ルートシグネチャの設定
 	D3D12_ROOT_SIGNATURE_DESC desc = {};
 	desc.NumParameters = _countof(param);
-	desc.NumStaticSamplers = 1;
+	desc.NumStaticSamplers = 2;
 	desc.pParameters = param;
-	desc.pStaticSamplers = &samplerDesc;
+	desc.pStaticSamplers = samplerDesc;
 	desc.Flags = flag;
 
 	// ルートシグネチャの生成

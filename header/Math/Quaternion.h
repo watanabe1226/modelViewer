@@ -77,35 +77,53 @@ public:
 
     static const Quaternion Euler(float x, float y, float z)
     {
-        //float radX = Utility::DegreeToRadian(x);
-        //float radY = Utility::DegreeToRadian(y);
-        //float radZ = Utility::DegreeToRadian(z);
+        float radX = MathUtility::DegreeToRadian(x) * 0.5f;
+        float radY = MathUtility::DegreeToRadian(y) * 0.5f;
+        float radZ = MathUtility::DegreeToRadian(z) * 0.5f;
 
-        //// 各軸の回転クォータニオンを計算
-        //Quaternion qX = Quaternion::AngleAxis(-x, Vector3D(1.0f, 0.0f, 0.0f));
-        //Quaternion qY = Quaternion::AngleAxis(-y, Vector3D(0.0f, 0.0f, 0.0f));
-        //Quaternion qZ = Quaternion::AngleAxis(-z, Vector3D(0.0f, 0.0f, 1.0f));
+        float cx = std::cos(radX);
+        float sx = std::sin(radX);
+        float cy = std::cos(radY);
+        float sy = std::sin(radY);
+        float cz = std::cos(radZ);
+        float sz = std::sin(radZ);
 
-        //return qZ * qX * qY;
+        // Z * X * Y の合成計算
+        return Quaternion(
+            sx * cy * cz + cx * sy * sz, // x
+            cx * sy * cz - sx * cy * sz, // y
+            cx * cy * sz - sx * sy * cz, // z
+            cx * cy * cz + sx * sy * sz  // w
+        );
     }
 
     static const Quaternion Euler(const Vector3D& vec)
     {
-        //float radX = Utility::DegreeToRadian(vec.x);
-        //float radY = Utility::DegreeToRadian(vec.y);
-        //float radZ = Utility::DegreeToRadian(vec.z);
-
-        //// 各軸の回転クォータニオンを計算
-        //Quaternion qX = Quaternion::AngleAxis(-vec.x, Vector3D(1.0f, 0.0f, 0.0f));
-        //Quaternion qY = Quaternion::AngleAxis(-vec.y, Vector3D(0.0f, 0.0f, 0.0f));
-        //Quaternion qZ = Quaternion::AngleAxis(-vec.z, Vector3D(0.0f, 0.0f, 1.0f));
-
-        //return qZ * qX * qY;
+        return Euler(vec.x, vec.y, vec.z);
     }
 
     static const Vector3D EulerAngles(const Quaternion& q)
     {
+        Vector3D angles;
 
+        // X軸(Pitch)の計算
+        float sinP = 2.0f * (q.w * q.x - q.y * q.z);
+        if (std::abs(sinP) >= 1.0f)
+            angles.x = std::copysign(MathUtility::PI / 2.0f, sinP); // 90度でクランプ
+        else
+            angles.x = std::asin(sinP);
+
+        // Y軸(Yaw)とZ軸(Roll)の計算
+        // ジンバルロック回避のため条件分岐する場合もあるが、asinの結果に基づく一般的な計算
+        angles.y = std::atan2(2.0f * (q.w * q.y + q.x * q.z), 1.0f - 2.0f * (q.x * q.x + q.y * q.y));
+        angles.z = std::atan2(2.0f * (q.w * q.z + q.x * q.y), 1.0f - 2.0f * (q.x * q.x + q.z * q.z));
+
+        // Radian -> Degree
+        angles.x = MathUtility::RadianToDegree(angles.x);
+        angles.y = MathUtility::RadianToDegree(angles.y);
+        angles.z = MathUtility::RadianToDegree(angles.z);
+
+        return angles;
     }
 
     //! @brief 指定した角度と回転軸からクォータニオンを生成
@@ -116,17 +134,14 @@ public:
     {
         Vector3D normalizedAxis = axis.GetSafeNormal();
         float radian = MathUtility::DegreeToRadian(angle);
-
-        // 半角の値を計算
         float halfAngle = radian * 0.5f;
-        float sinHalfAngle = sin(halfAngle);
-        float cosHalfAngle = cos(halfAngle);
+        float s = std::sin(halfAngle);
 
         return Quaternion(
-            normalizedAxis.x * sinHalfAngle,
-            normalizedAxis.y * sinHalfAngle,
-            normalizedAxis.z * sinHalfAngle,
-            cosHalfAngle
+            normalizedAxis.x * s,
+            normalizedAxis.y * s,
+            normalizedAxis.z * s,
+            std::cos(halfAngle)
         );
     }
 

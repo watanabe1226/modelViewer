@@ -16,6 +16,9 @@ Scene::Scene(Renderer* pRenderer, uint32_t width, uint32_t height)
 
 	std::string path = "assets/models/GroundPlane/plane.gltf";
 	AddModel(path);
+
+	path = "assets/models/SciFiHelm/SciFiHelmet.gltf";
+	AddModel(path);
 }
 
 Scene::~Scene()

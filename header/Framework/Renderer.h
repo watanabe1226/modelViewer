@@ -11,6 +11,7 @@ class DX12Commands;
 class DX12DescriptorHeap;
 class Scene;
 class SceneStage;
+class ShadowStage;
 
 class Renderer
 {
@@ -19,6 +20,7 @@ public:
 	~Renderer();
 	void NewFrame();
 	void Render();
+	void Update(float deltaTime);
 	void Resize();
 
 	template<typename T>
@@ -115,6 +117,7 @@ private:
 	// ÉVÅ[Éìä÷òA
 	Scene* m_pScene = nullptr;
 	std::unique_ptr<SceneStage> m_pSceneStage = nullptr;
+	std::unique_ptr<ShadowStage> m_pShadowStage = nullptr;
 
 	uint32_t m_Width;
 	uint32_t m_Height;

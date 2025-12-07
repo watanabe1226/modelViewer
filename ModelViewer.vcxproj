@@ -28,6 +28,7 @@
     <ClCompile Include="external\imgui\imgui_widgets.cpp" />
     <ClCompile Include="source\Framework\Editor.cpp" />
     <ClCompile Include="source\Framework\Input.cpp" />
+    <ClCompile Include="source\Graphics\DepthBuffer.cpp" />
     <ClCompile Include="source\Graphics\RenderStage.cpp" />
     <ClCompile Include="source\Framework\Scene.cpp" />
     <ClCompile Include="source\Graphics\Camera.cpp" />
@@ -61,6 +62,7 @@
     <ClInclude Include="header\Framework\Scene.h" />
     <ClInclude Include="header\Graphics\Camera.h" />
     <ClInclude Include="header\Graphics\ConstantBuffer.h" />
+    <ClInclude Include="header\Graphics\DepthBuffer.h" />
     <ClInclude Include="header\Graphics\DX12Commands.h" />
     <ClInclude Include="header\Graphics\DX12DescriptorHeap.h" />
     <ClInclude Include="header\Graphics\DX12Device.h" />
@@ -87,6 +89,20 @@
     <ClInclude Include="header\Utilities\Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="source\Shaders\ShadowVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)assets/shaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)assets/shaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)assets/shaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)assets/shaders/%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="source\Shaders\SimplePS.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
