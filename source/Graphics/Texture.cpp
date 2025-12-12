@@ -3,7 +3,54 @@
 #include "Graphics/DX12DescriptorHeap.h"
 #include "Framework/Renderer.h"
 
-Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube, D3D12_RESOURCE_FLAGS flag)
+namespace {
+
+    //-----------------------------------------------------------------------------
+    //      SRGBフォーマットに変換します.
+    //-----------------------------------------------------------------------------
+    DXGI_FORMAT ConvertToSRGB(DXGI_FORMAT format)
+    {
+        DXGI_FORMAT result = format;
+        switch (format)
+        {
+        case DXGI_FORMAT_R8G8B8A8_UNORM:
+        { result = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; }
+        break;
+
+        case DXGI_FORMAT_BC1_UNORM:
+        { result = DXGI_FORMAT_BC1_UNORM_SRGB; }
+        break;
+
+        case DXGI_FORMAT_BC2_UNORM:
+        { result = DXGI_FORMAT_BC2_UNORM_SRGB; }
+        break;
+
+        case DXGI_FORMAT_BC3_UNORM:
+        { result = DXGI_FORMAT_BC3_UNORM_SRGB; }
+        break;
+
+        case DXGI_FORMAT_B8G8R8A8_UNORM:
+        { result = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; }
+        break;
+
+        case DXGI_FORMAT_B8G8R8X8_UNORM:
+        { result = DXGI_FORMAT_B8G8R8X8_UNORM_SRGB; }
+        break;
+
+        case DXGI_FORMAT_BC7_UNORM:
+        { result = DXGI_FORMAT_BC7_UNORM_SRGB; }
+        break;
+
+        default:
+            break;
+        }
+
+        return result;
+    }
+
+}
+
+Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOURCE_FLAGS flag)
 {
 	auto pDevice = pRenderer->GetDevice().Get();
     DirectX::TexMetadata metaData = {};
@@ -115,7 +162,7 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, bool isCube,
 	SRVHeap = pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     srvIndex = SRVHeap->GetNextAvailableIndex();
 
-    D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = GetViewDesc(isCube, desc);
+    D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = GetViewDesc(desc);
 
 	pDevice->CreateShaderResourceView(
 		m_pResource.Get(),
@@ -138,7 +185,7 @@ D3D12_GPU_VIRTUAL_ADDRESS Texture::GetGPULocation() const
     return m_pResource->GetGPUVirtualAddress();
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC Texture::GetViewDesc(bool isCube, D3D12_RESOURCE_DESC desc)
+D3D12_SHADER_RESOURCE_VIEW_DESC Texture::GetViewDesc(D3D12_RESOURCE_DESC desc)
 {
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
 
@@ -178,65 +225,41 @@ D3D12_SHADER_RESOURCE_VIEW_DESC Texture::GetViewDesc(bool isCube, D3D12_RESOURCE
 
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
     {
-        if (isCube)
+        if (desc.DepthOrArraySize > 1)
         {
-            if (desc.DepthOrArraySize > 6)
+            if (desc.MipLevels > 1)
             {
-                viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+                viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
 
-                viewDesc.TextureCubeArray.MostDetailedMip = 0;
-                viewDesc.TextureCubeArray.MipLevels = desc.MipLevels;
-                viewDesc.TextureCubeArray.First2DArrayFace = 0;
-                viewDesc.TextureCubeArray.NumCubes = (desc.DepthOrArraySize / 6);
-                viewDesc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
+                viewDesc.Texture2DMSArray.FirstArraySlice = 0;
+                viewDesc.Texture2DMSArray.ArraySize = desc.DepthOrArraySize;
             }
             else
             {
-                viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+                viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 
-                viewDesc.TextureCube.MostDetailedMip = 0;
-                viewDesc.TextureCube.MipLevels = desc.MipLevels;
-                viewDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+                viewDesc.Texture2DArray.MostDetailedMip = 0;
+                viewDesc.Texture2DArray.MipLevels = desc.MipLevels;
+                viewDesc.Texture2DArray.FirstArraySlice = 0;
+                viewDesc.Texture2DArray.ArraySize = desc.DepthOrArraySize;
+                viewDesc.Texture2DArray.PlaneSlice = 0;
+                viewDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
             }
         }
         else
         {
-            if (desc.DepthOrArraySize > 1)
+            if (desc.MipLevels > 1)
             {
-                if (desc.MipLevels > 1)
-                {
-                    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
-
-                    viewDesc.Texture2DMSArray.FirstArraySlice = 0;
-                    viewDesc.Texture2DMSArray.ArraySize = desc.DepthOrArraySize;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-
-                    viewDesc.Texture2DArray.MostDetailedMip = 0;
-                    viewDesc.Texture2DArray.MipLevels = desc.MipLevels;
-                    viewDesc.Texture2DArray.FirstArraySlice = 0;
-                    viewDesc.Texture2DArray.ArraySize = desc.DepthOrArraySize;
-                    viewDesc.Texture2DArray.PlaneSlice = 0;
-                    viewDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
-                }
+                viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
             }
             else
             {
-                if (desc.MipLevels > 1)
-                {
-                    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 
-                    viewDesc.Texture2D.MostDetailedMip = 0;
-                    viewDesc.Texture2D.MipLevels = desc.MipLevels;
-                    viewDesc.Texture2D.PlaneSlice = 0;
-                    viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-                }
+                viewDesc.Texture2D.MostDetailedMip = 0;
+                viewDesc.Texture2D.MipLevels = desc.MipLevels;
+                viewDesc.Texture2D.PlaneSlice = 0;
+                viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
             }
         }
     }

@@ -1,7 +1,7 @@
 struct VSInput
 {
     float3 Position : POSITION;
-    float2 TexCoord : TEXCOORD;
+    float2 TexCoord : TEXCOORD0;
 };
 
 struct VSOutput
@@ -10,13 +10,7 @@ struct VSOutput
     float2 TexCoord : TEXCOORD;
 };
 
-cbuffer CameraPos : register(b0)
-{
-    float3 CameraPos;
-    float Padding;
-}
-
-cbuffer Transform : register(b1)
+cbuffer Transform : register(b0)
 {
     float4x4 World : packoffset(c0);
     float4x4 View : packoffset(c4);

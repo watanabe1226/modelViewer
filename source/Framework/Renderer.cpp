@@ -18,7 +18,8 @@
 #include "Graphics/Camera.h"
 #include "Graphics/RenderStages/SceneStage.h"
 #include "Graphics/RenderStages/ShadowStage.h"
-#include "Graphics/RenderStages/SkydomeStage.h"
+#include "Graphics/RenderStages/SkyBoxStage.h"
+#include "Graphics/RenderStages/SphereMapConverterStage.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
@@ -35,8 +36,8 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	m_pDevice = std::make_unique<DX12Device>();
 	auto pDevice = m_pDevice->GetDevice().Get();
 	// ディスクリプタヒープの生成
-	m_pRTVHeap = std::make_unique<DX12DescriptorHeap>(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, "RTVHeap", 16);
-	m_pDSVHeap = std::make_unique<DX12DescriptorHeap>(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, "DSVHeap", 10);
+	m_pRTVHeap = std::make_unique<DX12DescriptorHeap>(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, "RTVHeap", 128);
+	m_pDSVHeap = std::make_unique<DX12DescriptorHeap>(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, "DSVHeap", 8);
 	m_pCBV_SRV_UAV = std::make_unique<DX12DescriptorHeap>(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, "CBV_SRV_UAVHeap", 5000, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 	// コマンドの生成
 	m_pDirectCommand = std::make_unique<DX12Commands>(pDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -56,7 +57,21 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	// レンダーステージの作成
 	m_pShadowStage = std::make_unique<ShadowStage>(this);
 	m_pSceneStage = std::make_unique<SceneStage>(this, m_pShadowStage.get());
-	m_pSkydomeStage = std::make_unique<SkydomeStage>(this);
+	m_pSkyBoxStage = std::make_unique<SkyBoxStage>(this);
+	m_pSphereMapConverterStage = std::make_unique<SphereMapConverterStage>(this, m_pSkyBoxStage->GetHDRITex()->GetResource()->GetDesc());
+	
+	// SphericalMapをCubeMapに変換
+	auto pCommandList = m_pDirectCommand->GetGraphicsCommandList().Get();
+	// コマンドの記録を開始とリセット
+	m_pDirectCommand->ResetCommand();
+	float clearColor[] = { 0.25f, 0.25f, 0.25f, 1.0f };
+	auto rtv = m_pWindow->GetCurrentScreenRTV();
+	auto dsv = m_pWindow->GetDepthDSV();
+	m_pSphereMapConverterStage->DrawToCube(pCommandList, m_pSkyBoxStage->GetSkyBoxGPUHandle());
+	// コマンドリストの実行
+	m_pDirectCommand->ExecuteCommandList();
+	// GPUの処理完了を待機
+	m_pDirectCommand->WaitGpu(INFINITE);
 }
 
 Renderer::~Renderer()
@@ -89,7 +104,7 @@ void Renderer::Render()
 		D3D12_RESOURCE_STATE_PRESENT,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_pSceneStage->RecordStage(pCommandList);
-	m_pSkydomeStage->RecordStage(pCommandList);
+	m_pSkyBoxStage->RecordStage(pCommandList, m_pSphereMapConverterStage->GetCubeMapHandleGPU());
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandList);
 
 	// リソースバリアの設定
@@ -116,7 +131,7 @@ void Renderer::SetScene(Scene* newScene)
 	m_pScene = newScene;
 	m_pSceneStage->SetScene(newScene);
 	m_pShadowStage->SetScene(newScene);
-	m_pSkydomeStage->SetScene(newScene);
+	m_pSkyBoxStage->SetScene(newScene);
 	for (const auto& model : m_pScene->GetModels())
 	{
 		if (model->GetName() == "assets/models/SciFiHelm/SciFiHelmet.gltf")

@@ -12,7 +12,8 @@ class DX12DescriptorHeap;
 class Scene;
 class SceneStage;
 class ShadowStage;
-class SkydomeStage;
+class SkyBoxStage;
+class SphereMapConverterStage;
 
 class Renderer
 {
@@ -119,7 +120,8 @@ private:
 	Scene* m_pScene = nullptr;
 	std::unique_ptr<SceneStage> m_pSceneStage = nullptr;
 	std::unique_ptr<ShadowStage> m_pShadowStage = nullptr;
-	std::unique_ptr<SkydomeStage> m_pSkydomeStage = nullptr;
+	std::unique_ptr<SkyBoxStage> m_pSkyBoxStage = nullptr;
+	std::unique_ptr<SphereMapConverterStage> m_pSphereMapConverterStage = nullptr;
 
 	uint32_t m_Width;
 	uint32_t m_Height;

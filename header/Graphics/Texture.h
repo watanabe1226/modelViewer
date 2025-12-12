@@ -7,8 +7,7 @@ class Renderer;
 class Texture
 {
 public:
-	Texture(Renderer* pRenderer, const std::wstring& filePath,
-		bool isCube = false, D3D12_RESOURCE_FLAGS flag = D3D12_RESOURCE_FLAG_NONE);
+	Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOURCE_FLAGS flag = D3D12_RESOURCE_FLAG_NONE);
 	~Texture();
 
 	uint32_t GetSRVIndex() const { return srvIndex; }
@@ -18,7 +17,7 @@ public:
 	D3D12_GPU_VIRTUAL_ADDRESS GetGPULocation() const;
 
 private:
-	D3D12_SHADER_RESOURCE_VIEW_DESC GetViewDesc(bool isCube, D3D12_RESOURCE_DESC desc);
+	D3D12_SHADER_RESOURCE_VIEW_DESC GetViewDesc(D3D12_RESOURCE_DESC desc);
 	ComPtr<ID3D12Resource> m_pResource = nullptr;
 	ComPtr<ID3D12Resource> m_pUploadResource = nullptr;
 	uint32_t srvIndex = 0;

@@ -15,3 +15,7 @@ RenderStage::~RenderStage()
 void RenderStage::RecordStage(ID3D12GraphicsCommandList* pCmdList)
 {
 }
+
+void RenderStage::RecordStage(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle)
+{
+}

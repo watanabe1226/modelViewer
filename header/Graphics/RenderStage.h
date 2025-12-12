@@ -13,6 +13,7 @@ public:
 	virtual ~RenderStage();
 
 	virtual void RecordStage(ID3D12GraphicsCommandList* pCmdList);
+	virtual void RecordStage(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle);
 protected:
 	/// <summary>
 	/// ルートシグネチャ
