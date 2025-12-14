@@ -10,6 +10,10 @@ struct Material
 	float m_Alpha = 1.0f;    // アルファ値
 	float m_Shininess; // 鏡面反射強度
 	TextureID m_DiffuseTexId; // ディフューズテクスチャパスID
+	TextureID m_NormalTexId; // ノーマルテクスチャパスID
+	TextureID m_GLTFMetaricRoughnessTexId; // GLTFのメタリックラフネステクスチャパスID
+	TextureID m_ShininessTexId; // シャイネステクスチャパスID
+	TextureID m_SpecularTexId; // スペキュラテクスチャパスID
 };
 
 // GPU側に送るマテリアル構造体

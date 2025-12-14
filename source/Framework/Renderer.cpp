@@ -20,6 +20,7 @@
 #include "Graphics/RenderStages/ShadowStage.h"
 #include "Graphics/RenderStages/SkyBoxStage.h"
 #include "Graphics/RenderStages/SphereMapConverterStage.h"
+#include "Graphics/RenderStages/IBLBakerStage.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
@@ -49,14 +50,15 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	m_Height = height;
 
 	// ミッシング用テクスチャの作成
-	m_pMissingTextures = std::make_unique<Texture>(this, Utility::GetCurrentDir() + L"/assets/textures/test.png");
+	m_pMissingTextures = std::make_unique<Texture>(this, Utility::GetCurrentDir() + L"/assets/textures/White_Missing.png");
 	CreateConstantBuffer();
 
 	InitializeImGui();
 
 	// レンダーステージの作成
 	m_pShadowStage = std::make_unique<ShadowStage>(this);
-	m_pSceneStage = std::make_unique<SceneStage>(this, m_pShadowStage.get());
+	m_pIBLBakerStage = std::make_unique<IBLBakerStage>(this);
+	m_pSceneStage = std::make_unique<SceneStage>(this, m_pShadowStage.get(), m_pIBLBakerStage.get());
 	m_pSkyBoxStage = std::make_unique<SkyBoxStage>(this);
 	m_pSphereMapConverterStage = std::make_unique<SphereMapConverterStage>(this, m_pSkyBoxStage->GetHDRITex()->GetResource()->GetDesc());
 	
@@ -68,10 +70,19 @@ Renderer::Renderer(uint32_t width, uint32_t height)
 	auto rtv = m_pWindow->GetCurrentScreenRTV();
 	auto dsv = m_pWindow->GetDepthDSV();
 	m_pSphereMapConverterStage->DrawToCube(pCommandList, m_pSkyBoxStage->GetSkyBoxGPUHandle());
+	
+	// ベイク処理
+	m_pIBLBakerStage->IntegrateDFG(pCommandList);
+
+	auto desc = m_pSphereMapConverterStage->GetCubeMapDesc();
+	auto GPUHandle = m_pSphereMapConverterStage->GetCubeMapHandleGPU();
+	m_pIBLBakerStage->IntegrateLD(pCommandList, static_cast<uint32_t>(desc.Width), desc.MipLevels, GPUHandle);
+	
 	// コマンドリストの実行
 	m_pDirectCommand->ExecuteCommandList();
 	// GPUの処理完了を待機
 	m_pDirectCommand->WaitGpu(INFINITE);
+
 }
 
 Renderer::~Renderer()

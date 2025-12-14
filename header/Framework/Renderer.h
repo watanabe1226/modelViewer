@@ -14,6 +14,7 @@ class SceneStage;
 class ShadowStage;
 class SkyBoxStage;
 class SphereMapConverterStage;
+class IBLBakerStage;
 
 class Renderer
 {
@@ -122,6 +123,7 @@ private:
 	std::unique_ptr<ShadowStage> m_pShadowStage = nullptr;
 	std::unique_ptr<SkyBoxStage> m_pSkyBoxStage = nullptr;
 	std::unique_ptr<SphereMapConverterStage> m_pSphereMapConverterStage = nullptr;
+	std::unique_ptr<IBLBakerStage> m_pIBLBakerStage = nullptr;
 
 	uint32_t m_Width;
 	uint32_t m_Height;

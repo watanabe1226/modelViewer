@@ -36,6 +36,11 @@ public:
 private:
 	void PerseMaterial(const aiMaterial* pSrcMat, Material& dstMat);
 
+	void SetTextureId(const aiMaterial* pSrcMat,
+		aiString& texturePath,
+		const aiTextureType& texType,
+		TextureID& texId);
+
 	std::vector<std::unique_ptr<Mesh>> m_pMeshes;
 	std::vector<Material> m_Materials;
 

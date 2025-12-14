@@ -13,6 +13,17 @@
 using TextureID = size_t;
 namespace DX12Utility
 {
+    enum SamplerState
+    {
+        PointWrap,          //!< ポイントサンプリング - 繰り返し.
+        PointClamp,         //!< ポイントサンプリング - クランプ.
+        LinearWrap,         //!< トライリニアサンプリング - 繰り返し.
+        LinearClamp,        //!< トライリニアサンプリング - クランプ.
+        AnisotropicWrap,    //!< 異方性サンプリング - 繰り返し.
+        AnisotropicClamp,   //!< 異方性サンプリング - クランプ.
+		ShadowMapSampler,  //!< シャドウマップ用サンプラー.
+    };
+
     class DX12Exception : public std::runtime_error
     {
     public:

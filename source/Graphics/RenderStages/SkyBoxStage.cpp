@@ -16,7 +16,7 @@ SkyBoxStage::SkyBoxStage(Renderer* pRenderer) : RenderStage(pRenderer)
 	CreateRootSignature(pRenderer);
 	CreatePipeline(pRenderer);
 
-	auto path = L"assets/HDRI/sunny_rose_garden_4k.hdr";
+	auto path = L"assets/HDRI/testDome.hdr";
 	m_pHDRITexture = std::make_unique<Texture>(pRenderer, path, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	m_pTestTexture = std::make_unique<Texture>(pRenderer, path);
 }

@@ -62,6 +62,10 @@ Model::Model(Renderer* pRenderer, const std::wstring& filePath)
 
 			auto mat = m_Materials.at(materialIndex);
 			m_pMeshes[i]->SetDiffuseTex(m_pRenderer->GetTexture(mat.m_DiffuseTexId));
+			m_pMeshes[i]->SetNormalTex(m_pRenderer->GetTexture(mat.m_NormalTexId));
+			m_pMeshes[i]->SetGLTFMetaricRoughnessTex(m_pRenderer->GetTexture(mat.m_GLTFMetaricRoughnessTexId));
+			m_pMeshes[i]->SetShinessTex(m_pRenderer->GetTexture(mat.m_ShininessTexId));
+			m_pMeshes[i]->SetSpecularTex(m_pRenderer->GetTexture(mat.m_SpecularTexId));
 		}
 	}
 
@@ -119,6 +123,8 @@ void Model::Draw(const Matrix4x4& viewMat, const Matrix4x4& projMat)
 		auto matGPUAddress = m_pRenderer->AllocateConstantBuffer<MaterialBuffer>(m_MaterialBuffer, backBufferIndex);
 		m_pCommandList->SetGraphicsRootConstantBufferView(2, matGPUAddress);
 		m_pCommandList->SetGraphicsRootDescriptorTable(4, mesh->GetDiffuseTex()->GetSRV());
+		m_pCommandList->SetGraphicsRootDescriptorTable(5, mesh->GetNormalTex()->GetSRV());
+		m_pCommandList->SetGraphicsRootDescriptorTable(6, mesh->GetGLTFMetaricRoughnessTex()->GetSRV());
 
 		m_pCommandList->IASetVertexBuffers(0, 1, &vbv);
 		m_pCommandList->IASetIndexBuffer(&ibv);
@@ -184,15 +190,31 @@ void Model::PerseMaterial(const aiMaterial* pSrcMat, Material& dstMat)
 
 	// ディフューズテクスチャの取得
 	aiString texturePath;
-	if (pSrcMat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
+	SetTextureId(pSrcMat, texturePath, aiTextureType_DIFFUSE, dstMat.m_DiffuseTexId);
+	// ノーマルテクスチャの取得
+	SetTextureId(pSrcMat, texturePath, aiTextureType_NORMALS, dstMat.m_NormalTexId);
+	// スペキュラテクスチャの取得
+	SetTextureId(pSrcMat, texturePath, aiTextureType_SPECULAR, dstMat.m_SpecularTexId);
+	// メタリックテクスチャの取得
+	SetTextureId(pSrcMat, texturePath, aiTextureType_GLTF_METALLIC_ROUGHNESS, dstMat.m_GLTFMetaricRoughnessTexId);
+	// シャイネステクスチャの取得
+	SetTextureId(pSrcMat, texturePath, aiTextureType_SHININESS, dstMat.m_ShininessTexId);
+}
+
+void Model::SetTextureId(const aiMaterial* pSrcMat,
+	aiString& texturePath, 
+	const aiTextureType& texType,
+	TextureID& texId)
+{
+	if (pSrcMat->GetTexture(texType, 0, &texturePath) == AI_SUCCESS)
 	{
 		auto path = Utility::StringToWString(texturePath.C_Str());
 		m_pRenderer->CreateTextureFromFile(path.c_str());
 		auto id = DX12Utility::StringHash(path.c_str());
-		dstMat.m_DiffuseTexId = id;
+		texId = id;
 	}
 	else
 	{
-		dstMat.m_DiffuseTexId = -1;
+		texId = -1;
 	}
 }

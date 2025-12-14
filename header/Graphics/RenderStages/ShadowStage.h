@@ -27,6 +27,7 @@ private:
 	void CreateRootSignature(Renderer* pRenderer);
 	void CreatePipeline(Renderer* pRenderer);
 	void SetDirectionalLightRotation(const Vector3D& vec);
+
 	Scene* m_pScene = nullptr;
 	Camera* m_pMainCamera = nullptr;
 	std::unique_ptr<DepthBuffer> m_pDepthBuffer = nullptr;

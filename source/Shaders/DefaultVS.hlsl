@@ -16,9 +16,10 @@ struct VSOutput
 {
     float4 Position : SV_POSITION;
     float2 TexCoord : TEXCOORD;
-    float3 Normal : NORMAL;
     float3 ray : VECTOR;
     float4 tPos : TPOS;
+    float3 WorldPos : WORLD_POS;
+    float3x3 InvTangentBasis : INV_TANGENT_BASIS; // 接線空間への基底変換行列の逆行列
 };
 
 cbuffer Transform : register(b0)
@@ -46,9 +47,16 @@ VSOutput main(VSInput input)
     
     output.Position = projPos;
     output.TexCoord = input.TexCoord;
-    output.Normal = normalize(mul((float3x3) World, input.Normal));
-    output.tPos = mul(LightVP, worldPos);
+    output.tPos = mul(LightVP, float4(worldPos.xyz, 1.0));
     output.ray = normalize(worldPos.xyz - CameraPos);
+    output.WorldPos = worldPos.xyz;
+    
+    // 基底ベクトル
+    float3 N = normalize(mul((float3x3) World, input.Normal));
+    float3 T = normalize(mul((float3x3) World, input.Tangent));
+    float3 B = normalize(cross(N, T));
+    
+    output.InvTangentBasis = transpose(float3x3(T, B, N));
     
     return output;
 }

@@ -52,17 +52,18 @@ namespace {
 
 Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOURCE_FLAGS flag)
 {
-	auto pDevice = pRenderer->GetDevice().Get();
+    auto pDevice = pRenderer->GetDevice().Get();
     DirectX::TexMetadata metaData = {};
     DirectX::ScratchImage image = {};
     std::vector<D3D12_SUBRESOURCE_DATA> subResources;
 
+    // 1. 画像ファイルの読み込み
     std::wstring fileName = ExChangeFileExtension(filePath);
     auto ext = FileExtension(fileName);
     HRESULT hr = S_FALSE;
+
     if (ext == L"png")
     {
-        // テクスチャ生成
         hr = DirectX::LoadFromWICFile(fileName.c_str(), DirectX::WIC_FLAGS_NONE, &metaData, image);
         ThrowFailed(hr);
     }
@@ -76,12 +77,22 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOUR
         hr = DirectX::LoadFromHDRFile(fileName.c_str(), &metaData, image);
         ThrowFailed(hr);
     }
+    else if (ext == L"dds")
+    {
+        hr = DirectX::LoadFromDDSFile(fileName.c_str(), DirectX::DDS_FLAGS_NONE, &metaData, image);
+        ThrowFailed(hr);
+    }
+    else
+    {
+        assert(false && "未対応の画像フォーマットです");
+    }
 
-    // アップロードヒープ用準備
+    DXGI_FORMAT resourceFormat = ConvertToSRGB(metaData.format);
+
+    // アップロード用データの準備
     DirectX::PrepareUpload(pDevice, image.GetImages(), image.GetImageCount(), metaData, subResources);
 
-    // CPUからアクセス可能なバッファの作成
-    // ヒーププロパティ
+    // 2. テクスチャリソース (Default Heap) の作成
     D3D12_HEAP_PROPERTIES textureProp = {};
     textureProp.Type = D3D12_HEAP_TYPE_DEFAULT;
     textureProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -91,7 +102,7 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOUR
 
     D3D12_RESOURCE_DESC desc = {};
     desc.MipLevels = static_cast<UINT16>(metaData.mipLevels);
-    desc.Format = metaData.format;
+    desc.Format = resourceFormat; // SRGB変換後のフォーマットを使用
     desc.Width = static_cast<UINT>(metaData.width);
     desc.Height = static_cast<UINT>(metaData.height);
     desc.Flags = flag;
@@ -100,26 +111,26 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOUR
     desc.SampleDesc.Quality = 0;
     desc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metaData.dimension);
 
-    pDevice->CreateCommittedResource(
+    hr = pDevice->CreateCommittedResource(
         &textureProp,
         D3D12_HEAP_FLAG_NONE,
         &desc,
-        D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_COPY_DEST, // 初期状態はコピー先
         nullptr,
         IID_PPV_ARGS(m_pResource.GetAddressOf())
     );
+    ThrowFailed(hr);
 
-    const uint64_t texBufferSize = GetRequiredIntermediateSize(m_pResource.Get(), 0, 1);
+    // 3. アップロード用バッファ (Upload Heap) の作成
+    const uint64_t texBufferSize = GetRequiredIntermediateSize(m_pResource.Get(), 0, subResources.size());
 
-    // ヒーププロパティ
-    D3D12_HEAP_PROPERTIES prop = {};
-    prop.Type = D3D12_HEAP_TYPE_UPLOAD;
-    prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    prop.CreationNodeMask = 1;
-    prop.VisibleNodeMask = 1;
+    D3D12_HEAP_PROPERTIES uploadProp = {};
+    uploadProp.Type = D3D12_HEAP_TYPE_UPLOAD;
+    uploadProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    uploadProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    uploadProp.CreationNodeMask = 1;
+    uploadProp.VisibleNodeMask = 1;
 
-    // リソースの設定
     D3D12_RESOURCE_DESC uploadDesc = {};
     uploadDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     uploadDesc.Alignment = 0;
@@ -133,42 +144,69 @@ Texture::Texture(Renderer* pRenderer, const std::wstring& filePath, D3D12_RESOUR
     uploadDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     uploadDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-    pDevice->CreateCommittedResource(
-        &prop,
+    // 一時リソースなのでスマートポインタで管理し、関数終了時(WaitGpu後)に破棄させる
+    ComPtr<ID3D12Resource> uploadResource;
+
+    hr = pDevice->CreateCommittedResource(
+        &uploadProp,
         D3D12_HEAP_FLAG_NONE,
         &uploadDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
-        IID_PPV_ARGS(m_pUploadResource.GetAddressOf())
+        IID_PPV_ARGS(uploadResource.GetAddressOf())
+    );
+    ThrowFailed(hr);
+
+    ComPtr<ID3D12CommandAllocator> tempAllocator;
+    ComPtr<ID3D12GraphicsCommandList> tempCommandList;
+
+    hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(tempAllocator.GetAddressOf()));
+    ThrowFailed(hr);
+
+    // CreateCommandListした直後は Open 状態なので Reset 不要
+    hr = pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, tempAllocator.Get(), nullptr, IID_PPV_ARGS(tempCommandList.GetAddressOf()));
+    ThrowFailed(hr);
+
+    // サブリソースの更新コマンドを記録
+    UpdateSubresources(
+        tempCommandList.Get(),
+        m_pResource.Get(),
+        uploadResource.Get(),
+        0, 0,
+        static_cast<UINT>(subResources.size()),
+        subResources.data()
     );
 
-    // コマンドの記録を開始
-	auto pCommand = pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    pCommand->ResetCommand();
+    // リソースバリア (COPY_DEST -> PIXEL_SHADER_RESOURCE)
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = m_pResource.Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    tempCommandList->ResourceBarrier(1, &barrier);
 
-    // テクスチャバッファの転送
-	auto pCommandList = pCommand->GetGraphicsCommandList().Get();
-    UpdateSubresources(pCommandList, m_pResource.Get(), m_pUploadResource.Get(), 0, 0, subResources.size(), subResources.data());
+    // コマンド記録終了
+    tempCommandList->Close();
 
-    // リソースバリア
-    pRenderer->TransitionResource(m_pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    // 実行 (キューはRendererのものを使用)
+    ID3D12CommandQueue* pQueue = pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandQueue().Get();
+    ID3D12CommandList* ppCommandLists[] = { tempCommandList.Get() };
+    pQueue->ExecuteCommandLists(1, ppCommandLists);
 
-    // コマンドの実行
-    pCommand->ExecuteCommandList();
-    // GPU処理の完了を待機
-    pCommand->WaitGpu(INFINITY);
+    // 転送完了まで待機
+    pRenderer->GetCommands(D3D12_COMMAND_LIST_TYPE_DIRECT)->WaitGpu(INFINITE);
 
-	// SRVの作成
-	SRVHeap = pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    // 5. シェーダーリソースビュー (SRV) の作成
+    SRVHeap = pRenderer->GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     srvIndex = SRVHeap->GetNextAvailableIndex();
-
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = GetViewDesc(desc);
 
-	pDevice->CreateShaderResourceView(
-		m_pResource.Get(),
-		&viewDesc,
-		SRVHeap->GetCpuHandle(srvIndex)
-	);
+    pDevice->CreateShaderResourceView(
+        m_pResource.Get(),
+        &viewDesc,
+        SRVHeap->GetCpuHandle(srvIndex)
+    );
 }
 
 Texture::~Texture()

@@ -25,7 +25,7 @@ private:
 
 	Renderer* m_pRenderer = nullptr;
 	uint32_t m_MipCount; //!< ミップレベル数
-	ComPtr<ID3D12Resource> m_pCubeTex; //!< キューブマップテクスチャで
+	ComPtr<ID3D12Resource> m_pCubeTex; //!< キューブマップテクスチャ
 	uint32_t m_SRVIndex = 0;
 	std::vector<uint32_t> m_RTVIndeies;
 	TransformBuffer m_CBTrans[6];

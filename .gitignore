@@ -1,43 +1,63 @@
-# Prerequisites
+# ----------------------------------------------------------------------
+# Visual Studio Build Output Directories
+# ----------------------------------------------------------------------
+x64/
+x86/
+[Dd]ebug/
+[Rr]elease/
+build/
+.vs/
+
+# ----------------------------------------------------------------------
+# Visual Studio Intermediate Files
+# ----------------------------------------------------------------------
+*.tlog
+*.log
+*.idb
+*.pdb
+*.ilk
+*.ipch
+*.aps
+*.opt
+
+# ----------------------------------------------------------------------
+# Compiled Object files
+# ----------------------------------------------------------------------
+*.obj
+*.iobj
+*.ipdb
+*.o
+*.lo
+*.slo
 *.d
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
+# ----------------------------------------------------------------------
+# Compiled Libraries & Executables
+# ----------------------------------------------------------------------
+*.exe
+*.dll
 *.so
 *.dylib
-#*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
+*.lib
 *.a
-#*.lib
-
-# Executables
-*.exe
+*.la
+*.lai
 *.out
 *.app
 
-# visual studio
-*.vs
-*user
-*filters
-*tlog
-*ilk
-*idb
+# ----------------------------------------------------------------------
+# User Specific Files
+# ----------------------------------------------------------------------
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 
-# shader file
+# ----------------------------------------------------------------------
+# Others
+# ----------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
 *.cso

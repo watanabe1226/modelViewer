@@ -30,6 +30,14 @@ public:
 	void SetMaterialIndex(uint32_t index) { m_MaterialIndex = index; }
 	void SetDiffuseTex(Texture* pTexture) { m_pDiffuseTexture = pTexture; }
 	Texture* GetDiffuseTex() const { return m_pDiffuseTexture; }
+	void SetNormalTex(Texture* pTexture) { m_pNormalTextre = pTexture; }
+	Texture* GetNormalTex() const { return m_pNormalTextre; }
+	void SetGLTFMetaricRoughnessTex(Texture* pTexture) { m_pGLTFMetaricRoughnessTexture = pTexture; }
+	Texture* GetGLTFMetaricRoughnessTex() const { return m_pGLTFMetaricRoughnessTexture; }
+	void SetShinessTex(Texture* pTexture) { m_pShinessTexture = pTexture; }
+	Texture* GetShinessTex() const { return m_pShinessTexture; }
+	void SetSpecularTex(Texture* pTexture) { m_pSpecularTexture = pTexture; }
+	Texture* GetSpecularTex() const { return m_pSpecularTexture; }
 	std::string m_Name;
 
 private:
@@ -40,6 +48,10 @@ private:
 	uint32_t m_MaterialIndex = -1;
 
 	Texture* m_pDiffuseTexture = nullptr;
+	Texture* m_pNormalTextre = nullptr;
+	Texture* m_pGLTFMetaricRoughnessTexture = nullptr;
+	Texture* m_pShinessTexture = nullptr;
+	Texture* m_pSpecularTexture = nullptr;
 
 	// 頂点、インデックスデータ
 	ComPtr<ID3D12Resource> m_pVB = nullptr;
