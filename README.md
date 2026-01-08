@@ -21,6 +21,3 @@ DirectX 12 APIを用いたリアルタイム3Dモデルビューアーです。
 * **Graphics API**: DirectX 12
 * **Shader Language**: HLSL
 * **GUI**: Dear ImGui、assimp、DirectTex
-
-## ライセンス (License)
-This project is licensed under the MIT License.
