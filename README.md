@@ -20,4 +20,4 @@ DirectX 12 APIを用いたリアルタイム3Dモデルビューアーです。
 * **Language**: C++
 * **Graphics API**: DirectX 12
 * **Shader Language**: HLSL
-* **GUI**: Dear ImGui、assimp、DirectTex
+* **Library**: Dear ImGui、assimp、DirectTex
