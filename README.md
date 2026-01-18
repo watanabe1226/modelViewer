@@ -4,6 +4,8 @@ DirectX 12 APIを用いたリアルタイム3Dモデルビューアーです。
 
 <img width="1914" height="1014" alt="スクリーンショット 2026-01-08 222644" src="https://github.com/user-attachments/assets/0d93e218-62ac-46a9-b445-fdbb2272a686" />
 
+## セットアップ方法 (Features)
+BuildExternal.batを起動
 
 ## 主な機能 (Features)
 
